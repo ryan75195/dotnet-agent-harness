@@ -10,6 +10,12 @@ fi
 
 # Find the solution or project files - start from git repo root
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+
+# Block commits on branches that have already been merged (fail fast, before build/tests)
+if [ -x "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" ]; then
+  "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" || exit $?
+fi
+
 SLN=$(ls "$REPO_ROOT"/*.sln 2>/dev/null | head -1)
 
 # No .sln? Find all .csproj files instead
