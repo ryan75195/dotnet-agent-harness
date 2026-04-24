@@ -10,7 +10,6 @@ public class NoTupleReturnAnalyzerTests
     [Test]
     public async Task Should_report_diagnostic_for_tuple_return()
     {
-        // Mirrors SitemapCrawler's pattern: a method returning a tuple
         var source = """
             using System.Collections.Generic;
 

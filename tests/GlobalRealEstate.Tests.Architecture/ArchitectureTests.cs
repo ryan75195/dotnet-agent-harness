@@ -36,8 +36,6 @@ public class ArchitectureTests
     private static bool IsDbContext(Type type) =>
         typeof(DbContext).IsAssignableFrom(type);
 
-    // --- Layer isolation ---
-
     [Test]
     public void Should_keep_models_free_of_data_layer_dependencies()
     {
@@ -97,8 +95,6 @@ public class ArchitectureTests
                 "ETL pipeline must not reference the API layer");
     }
 
-    // --- SOLID: Dependency Inversion ---
-
     [Test]
     public void Should_require_interfaces_on_core_service_classes()
     {
@@ -124,8 +120,6 @@ public class ArchitectureTests
         });
     }
 
-    // --- Immutability: Domain models must be records ---
-
     [Test]
     public void Should_require_record_types_in_core_models()
     {
@@ -143,8 +137,6 @@ public class ArchitectureTests
             }
         });
     }
-
-    // --- Naming: implementations must end with their interface name ---
 
     [Test]
     public void Should_match_interface_naming_suffix_on_implementations()
@@ -169,15 +161,13 @@ public class ArchitectureTests
 
                 foreach (var iface in projectInterfaces)
                 {
-                    var expectedSuffix = iface.Name[1..]; // IFooBar → FooBar
+                    var expectedSuffix = iface.Name[1..];
                     type.Name.Should().EndWith(expectedSuffix,
                         $"{type.Name} implements {iface.Name} so should end with '{expectedSuffix}'");
                 }
             }
         });
     }
-
-    // --- Naming: entities must end with Entity ---
 
     [Test]
     public void Should_end_with_entity_for_types_in_entities_namespace()
@@ -197,8 +187,6 @@ public class ArchitectureTests
             }
         });
     }
-
-    // --- Naming: test classes must end with Tests ---
 
     [Test]
     public void Should_end_with_tests_for_all_test_fixtures()
@@ -221,8 +209,6 @@ public class ArchitectureTests
             }
         });
     }
-
-    // --- Naming: test methods must follow Should_word_word pattern ---
 
     private static readonly Regex TestMethodPattern = new(
         @"^Should(_[a-z0-9]+)+$", RegexOptions.Compiled);
@@ -256,8 +242,6 @@ public class ArchitectureTests
             $"Test methods must follow Should_word_word pattern. Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
-    // --- Naming: no Async suffix on our methods ---
-
     private static readonly HashSet<string> FrameworkAsyncMethods =
     [
         "DisposeAsync",
@@ -284,8 +268,6 @@ public class ArchitectureTests
         violations.Should().BeEmpty(
             $"Methods must not use Async suffix. Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
-
-    // --- Naming: concrete classes must use a recognised role suffix ---
 
     private static readonly HashSet<string> AllowedSuffixes =
     [
@@ -322,8 +304,6 @@ public class ArchitectureTests
             $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
-    // --- Location: interfaces must reside in Interfaces namespace ---
-
     [Test]
     public void Should_place_interfaces_in_interfaces_namespace()
     {
@@ -346,8 +326,6 @@ public class ArchitectureTests
             $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
-    // --- Coverage: every public class must have a test fixture ---
-
     [Test]
     public void Should_have_test_fixture_for_every_public_class()
     {
@@ -364,11 +342,11 @@ public class ArchitectureTests
             .SelectMany(a => a.GetTypes())
             .Where(t => t.IsClass
                 && t.IsPublic
-                && !t.IsAbstract // excludes static classes
+                && !t.IsAbstract
                 && !IsRecord(t)
                 && !IsDbContext(t)
                 && t.Namespace?.Contains(".Entities", StringComparison.Ordinal) != true
-                && t.Name != "Program") // entry point, no test needed
+                && t.Name != "Program")
             .ToList();
 
         var violations = classesRequiringTests
@@ -381,8 +359,6 @@ public class ArchitectureTests
             $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
-    // --- Coverage: test fixtures must be in the correct sub-namespace ---
-
     [Test]
     public void Should_place_test_fixtures_in_namespace_matching_source_assembly()
     {
@@ -394,7 +370,6 @@ public class ArchitectureTests
 
         var sourceAssemblies = new[] { CoreAssembly, EtlAssembly, ApiAssembly };
 
-        // Build lookup: source class name → assembly name
         var sourceClassToAssembly = new Dictionary<string, string>();
         foreach (var assembly in sourceAssemblies)
         {
@@ -408,7 +383,6 @@ public class ArchitectureTests
             }
         }
 
-        // Find test fixtures in the Unit test assembly
         var unitTestAssembly = typeof(Tests.Unit.AssemblyMarker).Assembly;
         var testFixtures = unitTestAssembly.GetTypes()
             .Where(t => t.IsClass && t.IsPublic
@@ -420,10 +394,10 @@ public class ArchitectureTests
 
         foreach (var fixture in testFixtures)
         {
-            var sourceClassName = fixture.Name[..^5]; // Strip "Tests"
+            var sourceClassName = fixture.Name[..^5];
             if (!sourceClassToAssembly.TryGetValue(sourceClassName, out var sourceAssemblyName))
             {
-                continue; // Source class not found in Core/Etl — skip
+                continue;
             }
 
             if (!sourceAssemblyMap.TryGetValue(sourceAssemblyName, out var requiredSegment))
@@ -445,8 +419,6 @@ public class ArchitectureTests
             $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
-    // --- Readability: prefer IEnumerable<T> over T[] returns ---
-
     private static readonly HashSet<string> AllowedArrayReturns = [];
 
     [Test]
@@ -462,7 +434,6 @@ public class ArchitectureTests
             {
                 var returnType = m.ReturnType;
 
-                // Unwrap Task<T> / ValueTask<T>
                 if (returnType.IsGenericType
                     && (returnType.GetGenericTypeDefinition() == typeof(Task<>)
                         || returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
@@ -481,15 +452,13 @@ public class ArchitectureTests
             $"Methods should return IEnumerable<T>/IReadOnlyList<T> instead of T[]. Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
-    // --- DI: constructor parameters must be interfaces, not concrete classes ---
-
     private static readonly HashSet<Type> AllowedConcreteParams =
     [
         typeof(string),
-        typeof(System.IO.StreamReader), // BCL I/O — data streams, not service dependencies
+        typeof(System.IO.StreamReader),
         typeof(System.IO.StreamWriter),
-        typeof(HttpClient), // commonly injected directly via IHttpClientFactory typed client pattern
-        typeof(TimeProvider), // BCL abstract class — no interface, FakeTimeProvider inherits for testing
+        typeof(HttpClient),
+        typeof(TimeProvider),
     ];
 
     [Test]
@@ -551,7 +520,7 @@ public class ArchitectureTests
 
                     if (IsRecord(paramType))
                     {
-                        continue; // config records are value-like, not dependencies
+                        continue;
                     }
 
                     violations.Add(
@@ -565,8 +534,6 @@ public class ArchitectureTests
             $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
-    // --- Commands: must not be static ---
-
     [Test]
     public void Should_not_allow_static_classes_in_commands_namespace()
     {
@@ -577,7 +544,7 @@ public class ArchitectureTests
             .ToList();
 
         var violations = commandTypes
-            .Where(t => t.IsAbstract && t.IsSealed) // static classes are abstract + sealed
+            .Where(t => t.IsAbstract && t.IsSealed)
             .Select(t => t.Name)
             .ToList();
 
@@ -585,8 +552,6 @@ public class ArchitectureTests
             $"Command classes must not be static — use constructor injection. " +
             $"Violations: {string.Join(", ", violations)}");
     }
-
-    // --- Organisation: one public type per file ---
 
     [Test]
     public void Should_declare_at_most_one_public_type_per_file()
@@ -608,8 +573,8 @@ public class ArchitectureTests
             }
 
             var csFiles = Directory.GetFiles(srcDir, "*.cs", SearchOption.AllDirectories)
-                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
-                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar));
+                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal));
 
             foreach (var file in csFiles)
             {
@@ -629,8 +594,6 @@ public class ArchitectureTests
             $"Each source file must declare at most one public type. " +
             $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
-
-    // --- DI wiring: every public Core interface must be registered via AddCoreServices ---
 
     [Test]
     public void Should_register_every_public_core_interface_in_add_core_services()

@@ -51,8 +51,6 @@ public class ConstructorParameterCountAnalyzerTests
     [Test]
     public async Task Should_not_report_for_records_with_primary_constructor()
     {
-        // IsExternalInit is needed for records with primary constructors (init-only properties).
-        // Inject it so the test compilation succeeds without requiring .NET 5+ reference assemblies.
         var source = """
             namespace System.Runtime.CompilerServices
             {

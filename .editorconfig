@@ -110,8 +110,6 @@ dotnet_diagnostic.IDE0005.severity = error
 dotnet_diagnostic.CA1502.severity = error
 dotnet_diagnostic.CA1505.severity = error
 
-# Explicit error handling (suggestion — batch processing uses catch(Exception) intentionally)
-dotnet_diagnostic.CA1031.severity = suggestion
 
 # Forward CancellationToken
 dotnet_diagnostic.CA2016.severity = error
@@ -130,8 +128,6 @@ dotnet_diagnostic.CA1507.severity = error
 # Namespace must match folder structure
 dotnet_diagnostic.IDE0130.severity = error
 
-# Disposal — CA2000 demoted to suggestion (too many false positives with pool-based resource management)
-dotnet_diagnostic.CA2000.severity = suggestion
 dotnet_diagnostic.CA1001.severity = error
 
 # === Suppressed rules — noise, not Clean Code ===
@@ -140,7 +136,6 @@ dotnet_diagnostic.CA1001.severity = error
 dotnet_diagnostic.CA1303.severity = none
 dotnet_diagnostic.CA1304.severity = none
 dotnet_diagnostic.CA1305.severity = none
-dotnet_diagnostic.CA1310.severity = none
 
 # LoggerMessage delegates — micro-optimisation
 dotnet_diagnostic.CA1848.severity = none
@@ -169,14 +164,6 @@ dotnet_diagnostic.CA1724.severity = none
 # Validate public method args — nullable reference types handle this
 dotnet_diagnostic.CA1062.severity = none
 
-# Sync IsDBNull in async — SQLite data is already buffered
-dotnet_diagnostic.CA1849.severity = none
-
-# SQL injection review — false positive on parameterised FTS5 queries
-dotnet_diagnostic.CA2100.severity = none
-
-# StringComparison overloads — same family as CA1304/CA1305 localisation noise
-dotnet_diagnostic.CA1307.severity = none
 
 # Expensive log argument evaluation — false positive on O(1) property access
 dotnet_diagnostic.CA1873.severity = none
@@ -190,8 +177,6 @@ dotnet_diagnostic.CA1515.severity = none
 # Pass System.Uri to HttpClient — over-prescriptive for string URLs
 dotnet_diagnostic.CA2234.severity = none
 
-# Use ToUpperInvariant — legitimate use of ToLowerInvariant for URL/HTML processing
-dotnet_diagnostic.CA1308.severity = none
 
 # Missing XML documentation — GenerateDocumentationFile is only for IDE0005
 dotnet_diagnostic.CS1591.severity = none
