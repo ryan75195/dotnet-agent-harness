@@ -11,11 +11,12 @@ A `dotnet new` template for .NET 10 ETL + API projects. Scaffolds:
 
 ## Install
 
-```powershell
-dotnet new install https://github.com/ryan75195/dotnet-etl-api-template
-```
+`dotnet new install` doesn't accept git URLs — clone first, then install from the local `content/` directory:
 
-(Or from a local clone: `dotnet new install <path-to-repo>`.)
+```powershell
+git clone https://github.com/ryan75195/dotnet-etl-api-template
+dotnet new install .\dotnet-etl-api-template\content
+```
 
 ## Use
 
@@ -36,18 +37,18 @@ After `setup.ps1`:
 ## Update
 
 ```powershell
-dotnet new install https://github.com/ryan75195/dotnet-etl-api-template
+cd dotnet-etl-api-template
+git pull
+dotnet new install .\content --force
 ```
-
-(Same command; pulls the latest from `main`.)
 
 ## Uninstall
 
 ```powershell
-dotnet new uninstall https://github.com/ryan75195/dotnet-etl-api-template
+dotnet new uninstall <path-you-used-at-install-time>\content
 ```
 
-(Or whatever path you used at install time.)
+(For example, `dotnet new uninstall .\dotnet-etl-api-template\content`.)
 
 ## Repo layout
 
