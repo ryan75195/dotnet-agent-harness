@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 Write-Host "Initializing git repo..."
-git init -q
+git init -q -b main
 git add .
 
 Write-Host "Activating .githooks..."
