@@ -17,9 +17,7 @@ public class ArchitectureTests
 
     private static readonly string[] ServiceNamespaces =
     [
-        "GlobalRealEstate.Core.Data",
-        "GlobalRealEstate.Core.Search",
-        "GlobalRealEstate.Core.Scraping"
+        "GlobalRealEstate.Core.Data"
     ];
 
     private static readonly Assembly[] TestAssemblies =
@@ -46,18 +44,6 @@ public class ArchitectureTests
                 "Microsoft.EntityFrameworkCore")
             .GetResult().IsSuccessful.Should().BeTrue(
                 "Domain models must be pure records with no EF or data layer dependencies");
-    }
-
-    [Test]
-    public void Should_keep_models_free_of_search_and_scraping_dependencies()
-    {
-        Types.InAssembly(CoreAssembly)
-            .That().ResideInNamespaceContaining("Core.Models")
-            .ShouldNot().HaveDependencyOnAny(
-                "GlobalRealEstate.Core.Search",
-                "GlobalRealEstate.Core.Scraping")
-            .GetResult().IsSuccessful.Should().BeTrue(
-                "Domain models must not reference search or scraping infrastructure");
     }
 
     [Test]
@@ -272,10 +258,9 @@ public class ArchitectureTests
     private static readonly HashSet<string> AllowedSuffixes =
     [
         "Service", "Repository", "Client", "Store", "Context",
-        "Entity", "Command", "Parser", "Crawler", "Downloader",
-        "Converter", "Pool", "Worker", "Process", "Extensions",
-        "Chunker", "Mapper", "Extractor", "Probe", "Result", "Monitor",
-        "Synthesiser", "Plugin", "Filter"
+        "Entity", "Command", "Parser", "Converter", "Pool",
+        "Worker", "Process", "Extensions", "Mapper", "Extractor",
+        "Probe", "Result", "Monitor", "Plugin", "Filter"
     ];
 
     [Test]

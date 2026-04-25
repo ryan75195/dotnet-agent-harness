@@ -96,7 +96,7 @@ TESTS_FAILED=0
 TOTAL_PASSED=0
 while IFS= read -r proj; do
   PROJ_NAME=$(basename "$proj" .csproj)
-  TEST_OUTPUT=$(dotnet test "$proj" --no-build --verbosity quiet --filter "TestCategory!=RequiresQdrant" 2>&1)
+  TEST_OUTPUT=$(dotnet test "$proj" --no-build --verbosity quiet 2>&1)
   if [ $? -ne 0 ]; then
     echo "FAILURES in $PROJ_NAME:"
     echo "$TEST_OUTPUT" | grep -E "(Failed|Error|Assert)" | head -20

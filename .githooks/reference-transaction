@@ -15,6 +15,11 @@
 
 [ "$1" = "prepared" ] || exit 0
 
+# Fail open if there's no GitHub remote yet — local-only repos shouldn't be blocked.
+# Mirrors the fail-open pattern in block-merged-branch.sh.
+git remote get-url origin >/dev/null 2>&1 || exit 0
+command -v gh >/dev/null 2>&1 || exit 0
+
 ZERO_OID="0000000000000000000000000000000000000000"
 
 while read -r oldrev newrev refname; do
