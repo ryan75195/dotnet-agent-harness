@@ -1,0 +1,29 @@
+name: template-ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scaffold-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install template from current source
+        run: dotnet new install ./content
+
+      - name: Scaffold test project
+        run: dotnet new etl-api -n ScaffoldTest -o ${{ runner.temp }}/scaffold-test
+
+      - name: Build scaffolded project
+        working-directory: ${{ runner.temp }}/scaffold-test
+        run: dotnet build --no-incremental
+
+      - name: Run scaffolded tests
+        working-directory: ${{ runner.temp }}/scaffold-test
+        run: dotnet test --no-build --verbosity minimal
