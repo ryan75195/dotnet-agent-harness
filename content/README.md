@@ -1,10 +1,10 @@
-# GlobalRealEstate
+# EtlApi
 
 ETL + API solution scaffolded from the [etl-api template](https://github.com/ryan75195/dotnet-etl-api-template).
 
 ## First-time setup
 
-After scaffolding (`dotnet new etl-api -n GlobalRealEstate`), run once:
+After scaffolding (`dotnet new etl-api -n EtlApi`), run once:
 
 ```powershell
 .\setup.ps1

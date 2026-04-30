@@ -28,9 +28,9 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 
 ## Architecture
 
-- **Solution:** `GlobalRealEstate.slnx`, .NET 10, four `src/` projects (`Core`, `Api`, `Etl`, `Analyzers`) and four `tests/` projects (`Tests.Unit`, `Tests.Integration`, `Tests.Architecture`, `Tests.Analyzers`).
-- **Architecture tests** in `tests/GlobalRealEstate.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
-- **Custom analyzers** in `src/GlobalRealEstate.Analyzers/` enforce CI0001-CI0013 (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc).
+- **Solution:** `EtlApi.slnx`, .NET 10, four `src/` projects (`Core`, `Api`, `Etl`, `Analyzers`) and four `tests/` projects (`Tests.Unit`, `Tests.Integration`, `Tests.Architecture`, `Tests.Analyzers`).
+- **Architecture tests** in `tests/EtlApi.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
+- **Custom analyzers** in `src/EtlApi.Analyzers/` enforce CI0001-CI0013 (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc).
 
 ## Key files
 

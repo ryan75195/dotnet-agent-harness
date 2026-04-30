@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EtlApi.Analyzers/EtlApi.Analyzers.csproj" />
+    <Project Path="src/EtlApi.Api/EtlApi.Api.csproj" />
+    <Project Path="src/EtlApi.Core/EtlApi.Core.csproj" />
+    <Project Path="src/EtlApi.Etl/EtlApi.Etl.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EtlApi.Tests.Analyzers/EtlApi.Tests.Analyzers.csproj" />
+    <Project Path="tests/EtlApi.Tests.Architecture/EtlApi.Tests.Architecture.csproj" />
+    <Project Path="tests/EtlApi.Tests.Integration/EtlApi.Tests.Integration.csproj" />
+    <Project Path="tests/EtlApi.Tests.Unit/EtlApi.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

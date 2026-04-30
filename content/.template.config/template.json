@@ -9,11 +9,11 @@
     "language": "C#",
     "type": "solution"
   },
-  "sourceName": "GlobalRealEstate",
+  "sourceName": "EtlApi",
   "preferNameDirectory": true,
   "primaryOutputs": [
-    { "path": "src/GlobalRealEstate.Api/GlobalRealEstate.Api.csproj" },
-    { "path": "src/GlobalRealEstate.Etl/GlobalRealEstate.Etl.csproj" }
+    { "path": "src/EtlApi.Api/EtlApi.Api.csproj" },
+    { "path": "src/EtlApi.Etl/EtlApi.Etl.csproj" }
   ],
   "postActions": [
     {

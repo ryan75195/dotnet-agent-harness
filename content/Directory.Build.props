@@ -1,6 +1,6 @@
 <Project>
   <!-- All properties scoped to non-analyser projects -->
-  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'GlobalRealEstate.Analyzers'">
+  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'EtlApi.Analyzers'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
@@ -13,8 +13,8 @@
   </PropertyGroup>
 
   <!-- Custom analyser — runs on all projects except the analyser itself -->
-  <ItemGroup Condition="'$(MSBuildProjectName)' != 'GlobalRealEstate.Analyzers'">
-    <ProjectReference Include="$(MSBuildThisFileDirectory)src\GlobalRealEstate.Analyzers\GlobalRealEstate.Analyzers.csproj"
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'EtlApi.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src\EtlApi.Analyzers\EtlApi.Analyzers.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
