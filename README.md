@@ -9,6 +9,28 @@ A `dotnet new` template for .NET 10 ETL + API projects. Scaffolds:
 - Three git/Claude hooks enforcing the development lifecycle
 - A `CLAUDE.md` documenting the lifecycle for the scaffolded project
 
+## The pattern
+
+An "ETL + API" solution is the standard shape for a small data platform: one process pulls data in on a schedule (the **ETL**), another exposes it over HTTP (the **API**), and both share the same domain types and persistence layer.
+
+This template scaffolds that as four source projects with strict dependency rules:
+
+| Project | Role | Depends on |
+|---------|------|------------|
+| **`Core`** | Domain types, interfaces, EF Core context, business logic. Knows nothing about the web or the ingestion job. | (nothing) |
+| **`Etl`** | Console app for the periodic ingestion run. Reads from external sources, writes through `Core`. Run on a schedule (cron, Task Scheduler, Hangfire, etc.). | `Core` |
+| **`Api`** | ASP.NET Core minimal API. Reads through `Core` and serves it over HTTP. | `Core` |
+| **`Analyzers`** | Roslyn analyzers (CI0001–CI0013) that ship with the solution and run on every build. | (nothing) |
+
+The split lets the two workloads scale independently — the ETL might run nightly on a small VM, the API runs continuously behind a load balancer — and keeps each layer testable at its own boundary.
+
+The four test projects mirror the same boundaries:
+
+- **Unit** — fast, in-memory, per-class
+- **Integration** — real database, real HTTP, end-to-end
+- **Architecture** — enforces the layering rules above, plus DI registration, naming conventions, and one-public-type-per-file
+- **Analyzers** — verifies each Roslyn analyzer flags what it should and ignores what it shouldn't
+
 ## Install
 
 `dotnet new install` doesn't accept git URLs — clone first, then install from the local `content/` directory:
