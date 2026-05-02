@@ -11,7 +11,9 @@ A vanilla `dotnet new console` project gives an agent a lot of rope. There are n
 - **Architectural decay.** The agent registers a service but forgets the interface in DI. It puts a `DbContext` reference in `Core.Models`. It makes Api depend on Etl. The build still passes; nothing complains until weeks later when something breaks in production.
 - **Style entropy.** Allman vs K&R braces. `_camelCase` vs `m_camelCase`. CRLF vs LF. The agent picks whichever matches the last file it read, and the codebase smears.
 
-These templates ship the guardrails pre-installed, set to **error severity**. The agent finds out about every one of these the moment it tries to compile or commit, not in code review three days later. In practice that means you can let the agent work for longer between human checkpoints, because the harness catches the things you'd otherwise have to catch yourself.
+You can write all of this down in `CLAUDE.md`, `AGENTS.md`, a system prompt, or a slash command, and the agent will sometimes still ignore it. Soft rules in natural language don't reliably survive a long session — the agent forgets, reprioritises, or convinces itself the current case is an exception. The only reliable way to enforce an architectural rule on an agent is to make it **stop the build**: a failing diagnostic, a failing test, a rejected commit. The agent reads the error, understands what broke, and self-corrects. That's a feedback loop the agent can't talk its way out of.
+
+These templates encode the rules that way. Every guardrail is wired into the toolchain at **error severity** — the agent finds out the moment it tries to compile or commit, not in code review three days later. In practice that means you can let the agent work for longer between human checkpoints, because the harness catches the things a soft prompt wouldn't.
 
 ## What's in the box
 
