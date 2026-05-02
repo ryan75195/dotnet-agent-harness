@@ -1,0 +1,21 @@
+<Project>
+  <!-- All properties scoped to non-analyser projects -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'EtlApi.Analyzers'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <!-- Required for IDE0005 (remove unnecessary usings) to work in build -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- NU1510: NuGet pruning suggestion — not a code quality issue -->
+    <!-- CI0002: public method test coverage — visible warning, not blocking until promoted -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1510;CI0002</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <!-- Custom analyser — runs on all projects except the analyser itself -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'EtlApi.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src\EtlApi.Analyzers\EtlApi.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

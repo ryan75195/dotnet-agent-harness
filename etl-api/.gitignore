@@ -1,0 +1,7 @@
+.vs/
+.idea/
+
+template-tests/scratch/
+
+.DS_Store
+Thumbs.db
