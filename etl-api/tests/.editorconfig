@@ -1,0 +1,49 @@
+# Test project overrides — inherits from root
+[*.cs]
+
+# Test methods can have many assertions — complexity is fine
+dotnet_diagnostic.CA1502.severity = suggestion
+
+# Test maintainability thresholds don't apply
+dotnet_diagnostic.CA1505.severity = suggestion
+
+# NUnit test methods can't be static
+dotnet_diagnostic.CA1822.severity = none
+
+# Test fixtures manage disposal in TearDown, not IDisposable
+dotnet_diagnostic.CA2000.severity = suggestion
+
+# Tests sometimes catch exceptions to assert on them
+dotnet_diagnostic.CA1031.severity = suggestion
+
+# TestCase parameters and NSubstitute callbacks have unused params
+dotnet_diagnostic.IDE0060.severity = suggestion
+
+# Test fixtures clean up disposables in TearDown, not IDisposable
+dotnet_diagnostic.CA1001.severity = suggestion
+
+# Test methods use Method_Scenario_Result naming convention with underscores
+dotnet_diagnostic.CA1707.severity = none
+
+# Inline constant arrays are fine in test data
+dotnet_diagnostic.CA1861.severity = none
+
+# Task.Run without TaskScheduler — fine in tests
+dotnet_diagnostic.CA2008.severity = none
+
+# CI0002: Public method test coverage — enforced, blocks commits
+dotnet_diagnostic.CI0002.severity = error
+
+# CI0004-CI0006: structural rules don't apply to test fixtures
+dotnet_diagnostic.CI0004.severity = none
+dotnet_diagnostic.CI0005.severity = none
+dotnet_diagnostic.CI0006.severity = none
+
+# CI0007: method length — test methods can be long with arrange/act/assert
+dotnet_diagnostic.CI0007.severity = none
+
+# CI0008: pragma warning disable — test projects legitimately suppress IDE/CA rules in test code
+dotnet_diagnostic.CI0008.severity = none
+
+# CI0009: not-null-only assertion — enforced in test projects, blocks commits
+dotnet_diagnostic.CI0009.severity = error

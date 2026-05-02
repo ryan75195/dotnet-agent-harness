@@ -1,0 +1,53 @@
+#!/bin/bash
+# reference-transaction hook — enforces feat/<issue-num>-<slug> naming
+# on local feat branch creation, and verifies the issue exists on GitHub.
+#
+# Fires 3x per ref transaction (prepared | committed | aborted). Only
+# 'prepared' can abort by exiting non-zero. Stdin receives one line per
+# ref change: <old-oid> <new-oid> <refname>.
+#
+# Filters to NEW LOCAL FEAT BRANCH creation:
+#   - phase == prepared
+#   - refname matches refs/heads/feat/*
+#   - old-oid is all zeros (only new refs, not updates/deletes)
+# Fetches, tags, commits, branch deletes, and remote-tracking ref updates
+# all pass through without calling out to GitHub.
+
+[ "$1" = "prepared" ] || exit 0
+
+# Fail open if there's no GitHub remote yet — local-only repos shouldn't be blocked.
+# Mirrors the fail-open pattern in block-merged-branch.sh.
+git remote get-url origin >/dev/null 2>&1 || exit 0
+command -v gh >/dev/null 2>&1 || exit 0
+
+ZERO_OID="0000000000000000000000000000000000000000"
+
+while read -r oldrev newrev refname; do
+  [[ "$refname" == refs/heads/feat/* ]] || continue
+  [[ "$oldrev" == "$ZERO_OID" ]] || continue
+
+  branch="${refname#refs/heads/}"
+
+  if [[ ! "$branch" =~ ^feat/([0-9]+)-[a-z0-9-]+$ ]]; then
+    echo "ERROR: feat branch name must match feat/<issue-num>-<slug>" >&2
+    echo "  got: $branch" >&2
+    echo "  e.g. feat/42-add-auth" >&2
+    echo "" >&2
+    echo "If no issue exists, create one first:" >&2
+    echo "  gh issue create --title \"...\"" >&2
+    exit 1
+  fi
+
+  num="${BASH_REMATCH[1]}"
+
+  if ! gh issue view "$num" --json state >/dev/null 2>&1; then
+    echo "ERROR: issue #$num not found on GitHub." >&2
+    echo "  branch: $branch" >&2
+    echo "" >&2
+    echo "Create the issue first, then retry:" >&2
+    echo "  gh issue create --title \"...\"" >&2
+    exit 1
+  fi
+done
+
+exit 0

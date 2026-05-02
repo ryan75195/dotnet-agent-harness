@@ -7,6 +7,10 @@ on:
 jobs:
   scaffold-and-test:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [cli, etl-api]
     steps:
       - uses: actions/checkout@v4
 
@@ -14,16 +18,16 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install template from current source
-        run: dotnet new install ./content
+      - name: Install templates from current source
+        run: dotnet new install .
 
       - name: Scaffold test project
-        run: dotnet new etl-api -n ScaffoldTest -o ${{ runner.temp }}/scaffold-test
+        run: dotnet new ${{ matrix.template }} -n ScaffoldTest -o ${{ runner.temp }}/scaffold-${{ matrix.template }}
 
       - name: Build scaffolded project
-        working-directory: ${{ runner.temp }}/scaffold-test
+        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
         run: dotnet build --no-incremental
 
       - name: Run scaffolded tests
-        working-directory: ${{ runner.temp }}/scaffold-test
+        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
         run: dotnet test --no-build --verbosity minimal

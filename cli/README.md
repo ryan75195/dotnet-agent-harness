@@ -1,10 +1,10 @@
-# EtlApi
+# ConsoleApp
 
-ETL + API solution scaffolded from the [etl-api template](https://github.com/ryan75195/dotnet-etl-api-template).
+Console CLI solution scaffolded from the [dotnet-agent-harness](https://github.com/ryan75195/dotnet-agent-harness) `cli` template.
 
 ## First-time setup
 
-After scaffolding (`dotnet new etl-api -n EtlApi`), run once:
+After scaffolding (`dotnet new cli -n ConsoleApp`), run once:
 
 ```powershell
 .\setup.ps1

@@ -1,0 +1,167 @@
+#!/bin/bash
+# pre-commit hook: branch protection, build, lint, and test before allowing commit
+
+# Block commits to main/master
+BRANCH=$(git branch --show-current 2>/dev/null)
+if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+  echo "BLOCKED: Cannot commit directly to $BRANCH. Create a feature branch first."
+  exit 1
+fi
+
+# Find the solution or project files - start from git repo root
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+
+# Block commits on branches that have already been merged (fail fast, before build/tests)
+if [ -x "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" ]; then
+  "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" || exit $?
+fi
+
+SLN=$(ls "$REPO_ROOT"/*.sln 2>/dev/null | head -1)
+
+# No .sln? Find all .csproj files instead
+if [ -z "$SLN" ]; then
+  CSPROJ_COUNT=$(find "$REPO_ROOT" -maxdepth 4 -name "*.csproj" 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$CSPROJ_COUNT" -eq 0 ]; then
+    echo "No .sln or .csproj found — skipping pre-commit checks."
+    exit 0
+  fi
+  # Build/test from repo root, dotnet will discover projects
+  BUILD_TARGET="$REPO_ROOT"
+else
+  BUILD_TARGET="$SLN"
+fi
+
+echo "=== Pre-Commit Checks ==="
+
+# Build + Static Analysis (editorconfig rules are errors so they break the build)
+echo "--- Build + Analyse ---"
+BUILD_OUTPUT=$(dotnet build "$BUILD_TARGET" --no-incremental --verbosity quiet 2>&1)
+BUILD_EXIT=$?
+
+if [ $BUILD_EXIT -ne 0 ]; then
+  echo "BUILD FAILED:"
+  echo "$BUILD_OUTPUT" | grep -E "(error CS|error MSB|error CA|error IDE|error SA|error CI)" | sort -u | head -20
+  echo ""
+
+  if echo "$BUILD_OUTPUT" | grep -q "CI0009"; then
+    echo "=== CI0009: Not-Null-Only Assertion ==="
+    echo "Your test asserts a variable is not null but never checks the actual data."
+    echo "This is a false safety net — it confirms the method returned something"
+    echo "but doesn't verify WHAT it returned."
+    echo ""
+    echo "Fix by adding assertions on the actual values:"
+    echo "  BAD:  Assert.That(result, Is.Not.Null);"
+    echo "  GOOD: Assert.That(result, Is.Not.Null);"
+    echo "        Assert.That(result!.Data, Is.EqualTo(expectedBytes));"
+    echo "        Assert.That(result.ContentType, Is.EqualTo(\"image/png\"));"
+    echo ""
+    echo "If the variable really should just be non-null with no other properties"
+    echo "to check, use Assert.That(result, Is.InstanceOf<ExpectedType>()) instead."
+    echo ""
+  fi
+
+  echo "Fix all errors before committing."
+  exit 1
+fi
+echo "Build: ok"
+
+# Show custom analyser warnings (CI0001/CI0002) — non-blocking but visible
+CI_WARNINGS=$(echo "$BUILD_OUTPUT" | grep -E "warning CI00" | sort -u)
+if [ -n "$CI_WARNINGS" ]; then
+  CI_COUNT=$(echo "$CI_WARNINGS" | wc -l | tr -d ' ')
+  echo "--- Custom Analyser Warnings ($CI_COUNT) ---"
+  echo "$CI_WARNINGS"
+fi
+
+# Lint (formatting)
+echo "--- Lint (dotnet format) ---"
+FORMAT_OUTPUT=$(dotnet format "$BUILD_TARGET" --verify-no-changes --verbosity quiet 2>&1)
+if [ $? -ne 0 ]; then
+  echo "LINT FAILED. Run 'dotnet format' to fix:"
+  echo "$FORMAT_OUTPUT" | head -20
+  exit 1
+fi
+echo "Lint: clean"
+
+# Tests (unit + architecture — integration tests run in /ship)
+echo "--- Unit + Architecture Tests ---"
+TEST_PROJECTS=$(find "$REPO_ROOT" -maxdepth 4 -name "*.csproj" \( -path "*Unit*" -o -path "*Arch*" \) 2>/dev/null)
+if [ -z "$TEST_PROJECTS" ]; then
+  echo "No unit/architecture test projects found — skipping tests."
+  echo "=== Build and lint passed ==="
+  exit 0
+fi
+
+TESTS_FAILED=0
+TOTAL_PASSED=0
+while IFS= read -r proj; do
+  PROJ_NAME=$(basename "$proj" .csproj)
+  TEST_OUTPUT=$(dotnet test "$proj" --no-build --verbosity quiet 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "FAILURES in $PROJ_NAME:"
+    echo "$TEST_OUTPUT" | grep -E "(Failed|Error|Assert)" | head -20
+    echo ""
+    TESTS_FAILED=1
+  else
+    PASSED=$(echo "$TEST_OUTPUT" | sed -n 's/.*Passed:[[:space:]]*\([0-9]*\).*/\1/p' | tail -1)
+    TOTAL_PASSED=$((TOTAL_PASSED + ${PASSED:-0}))
+  fi
+done <<< "$TEST_PROJECTS"
+
+if [ "$TESTS_FAILED" -eq 1 ]; then
+  echo "TESTS FAILED. Fix failing tests before committing."
+  exit 1
+fi
+echo "Tests: $TOTAL_PASSED passed"
+
+# Test quality guidance — detect new/changed test files and emit instructions
+STAGED_TESTS=$(git diff --cached --name-only --diff-filter=AM | grep -E "Tests\.(Unit|Integration)/.*Tests\.cs$" || true)
+if [ -n "$STAGED_TESTS" ]; then
+  echo "--- Test Quality Reminder ---"
+  echo "New/modified test files detected:"
+  echo "$STAGED_TESTS" | sed 's/^/  /'
+  echo ""
+  echo "Verify each test follows these rules:"
+  echo "  1. Assert on ACTUAL OUTPUT DATA, not just Is.Not.Null or Has.Count"
+  echo "  2. Verify exact values: if inserting bytes {0x89,0x50}, assert the returned bytes match"
+  echo "  3. Test the error/empty/missing case, not just the happy path"
+  echo "  4. If the method has side effects (DB writes, file creation), verify the side effect"
+  echo "  5. If the method transforms data, assert on the transformation result"
+  echo "  6. Use Assert.Multiple to report all failures, not just the first"
+  echo ""
+  echo "A test that calls a method without verifying its output is a false safety net."
+  echo ""
+
+  # Detect test fixtures that might benefit from TestCaseSource
+  for testfile in $STAGED_TESTS; do
+    if [ ! -f "$REPO_ROOT/$testfile" ]; then
+      continue
+    fi
+
+    CONTENT=$(cat "$REPO_ROOT/$testfile")
+    FIXTURE_NAME=$(basename "$testfile" .cs)
+
+    # Count plain [Test] methods vs parameterised ones
+    PLAIN_TESTS=$(echo "$CONTENT" | grep -cE '^\s*\[Test\]\s*$' || true)
+    PARAMETERISED=$(echo "$CONTENT" | grep -cE '\[TestCase[^]]*\]|\[TestCaseSource' || true)
+
+    # Find methods that look structurally similar:
+    # Extract method bodies that call the same static method with different args
+    # Heuristic: 3+ plain [Test] methods calling the same SUT method = candidate for TestCaseSource
+    SUT_CALLS=$(echo "$CONTENT" | grep -oE '[A-Z][a-zA-Z]+\.(Find|Load|Delete|Get|Create|Parse|Map|Extract|Build|Generate|Insert|Remove|Search|Classify|Convert)[A-Za-z]*\(' | sort | uniq -c | sort -rn | head -5)
+    REPEATED=$(echo "$SUT_CALLS" | awk '$1 >= 3 { print $0 }')
+
+    if [ -n "$REPEATED" ]; then
+      echo "--- Parameterisation Hint: $FIXTURE_NAME ---"
+      echo "  These methods are tested 3+ times with plain [Test] — consider TestCaseSource:"
+      echo "$REPEATED" | while read -r count method; do
+        echo "    $method called in $count tests"
+      done
+      echo "  ($PLAIN_TESTS plain tests, $PARAMETERISED parameterised)"
+      echo ""
+    fi
+  done
+fi
+
+echo "=== All checks passed ==="
+exit 0

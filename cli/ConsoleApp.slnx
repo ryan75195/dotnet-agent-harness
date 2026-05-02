@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ConsoleApp.Analyzers/ConsoleApp.Analyzers.csproj" />
+    <Project Path="src/ConsoleApp.Cli/ConsoleApp.Cli.csproj" />
+    <Project Path="src/ConsoleApp.Core/ConsoleApp.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ConsoleApp.Tests.Analyzers/ConsoleApp.Tests.Analyzers.csproj" />
+    <Project Path="tests/ConsoleApp.Tests.Architecture/ConsoleApp.Tests.Architecture.csproj" />
+    <Project Path="tests/ConsoleApp.Tests.Integration/ConsoleApp.Tests.Integration.csproj" />
+    <Project Path="tests/ConsoleApp.Tests.Unit/ConsoleApp.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

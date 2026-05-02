@@ -1,19 +1,24 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('cli', 'etl-api')]
+    [string]$Template
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$contentDir = Join-Path $repoRoot "content"
-$scaffoldDir = Join-Path $env:TEMP "etl-api-template-smoke"
+$scaffoldDir = Join-Path $env:TEMP "$Template-template-smoke"
 
 Write-Host "Cleaning previous smoke-test directory..."
 if (Test-Path $scaffoldDir) {
     Remove-Item -Recurse -Force $scaffoldDir
 }
 
-Write-Host "Installing template from $contentDir..."
-dotnet new install $contentDir --force
+Write-Host "Installing templates from $repoRoot..."
+dotnet new install $repoRoot --force
 
-Write-Host "Scaffolding test project at $scaffoldDir..."
-dotnet new etl-api -n SmokeTest -o $scaffoldDir
+Write-Host "Scaffolding $Template project at $scaffoldDir..."
+dotnet new $Template -n SmokeTest -o $scaffoldDir
 
 Write-Host "Building scaffolded project..."
 Push-Location $scaffoldDir
@@ -31,6 +36,6 @@ finally {
 
 Write-Host ""
 Write-Host "Smoke test passed. Cleaning up..."
-dotnet new uninstall $contentDir
+dotnet new uninstall $repoRoot
 Remove-Item -Recurse -Force $scaffoldDir
 Write-Host "Done."
