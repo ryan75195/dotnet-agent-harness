@@ -18,7 +18,7 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 5. **Open PR.** `gh pr create --base main --head feat/<N>-<slug>`.
 6. **Squash merge.** `gh pr merge <N> --squash --delete-branch`.
 
-**Direct commits to `main` are blocked.** **Edits to an already-merged branch are blocked** (Claude Code `PreToolUse` hook + pre-commit).
+**Direct edits and commits to `main` are blocked.** **Edits to an already-merged branch are blocked** (Claude Code `PreToolUse` hook + pre-commit).
 
 ## Code style
 
@@ -36,8 +36,8 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 
 - `.githooks/pre-commit` — commit-time enforcement
 - `.githooks/reference-transaction` — branch-creation enforcement
+- `.claude/hooks/block-main-branch.sh` — edit-time main/master protection
 - `.claude/hooks/block-merged-branch.sh` — shared merged-branch check
 - `.claude/settings.json` — Claude Code hook registration
 - `Directory.Build.props` — `TreatWarningsAsErrors`, analyzer project wire-up
 - `.editorconfig` + `tests/.editorconfig` — style + severity overrides
-
