@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch|functions.apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$root = git rev-parse --show-toplevel 2>$null; if (-not $root) { $root = (Get-Location).Path }; & (Join-Path $root '.codex/hooks/block-main-branch.ps1')\"",
+            "statusMessage": "Checking branch before edit"
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$root = git rev-parse --show-toplevel 2>$null; if (-not $root) { $root = (Get-Location).Path }; & (Join-Path $root '.codex/hooks/block-merged-branch.ps1')\"",
+            "statusMessage": "Checking merged branch state"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|shell_command|functions.shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$root = git rev-parse --show-toplevel 2>$null; if (-not $root) { $root = (Get-Location).Path }; & (Join-Path $root '.codex/hooks/block-mutating-shell-on-main-branch.ps1')\"",
+            "statusMessage": "Checking shell command before protected branch mutation"
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$root = git rev-parse --show-toplevel 2>$null; if (-not $root) { $root = (Get-Location).Path }; & (Join-Path $root '.codex/hooks/block-merged-branch.ps1')\"",
+            "statusMessage": "Checking merged branch state"
+          }
+        ]
+      }
+    ]
+  }
+}

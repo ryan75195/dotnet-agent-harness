@@ -10,7 +10,7 @@ After scaffolding (`dotnet new etl-api -n EtlApi`), run once:
 .\setup.ps1
 ```
 
-This initializes a git repo, activates `.githooks/` for the project lifecycle, and creates the initial commit.
+This initializes a git repo, activates `.githooks/` for the project lifecycle, and creates the initial commit. Codex hook config is included under `.codex/` for edit-time branch guards.
 
 ## Build and test
 
@@ -30,4 +30,4 @@ Quick summary:
 3. Edit + commit (pre-commit hook runs build, format, tests)
 4. `gh pr create` and squash-merge
 
-Direct commits to `main` are blocked. Edits to already-merged branches are blocked.
+Direct edits and commits to `main` are blocked. Edits to already-merged branches are blocked.
