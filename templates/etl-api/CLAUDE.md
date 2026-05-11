@@ -38,6 +38,7 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 - `.githooks/reference-transaction` — branch-creation enforcement
 - `.claude/hooks/block-main-branch.sh` — edit-time main/master protection
 - `.claude/hooks/block-merged-branch.sh` — shared merged-branch check
+- `.claude/hooks/block-mutating-shell-on-main-branch.sh` — shell-time main/master mutation protection
 - `.claude/settings.json` — Claude Code hook registration
 - `.codex/hooks.json` — Codex hook registration
 - `.codex/hooks/*.ps1` — Codex edit-time and mutating-shell guards
