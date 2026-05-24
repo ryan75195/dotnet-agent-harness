@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using FluentAssertions;
 
@@ -29,11 +30,12 @@ public class CodeStructureTests
             .SelectMany(a => a.GetTypes())
             .Where(t => t.IsClass
                 && t.IsPublic
-                && !t.IsAbstract
+                && (!t.IsAbstract || t.IsSealed)
+                && !t.Name.EndsWith("Extensions", StringComparison.Ordinal)
                 && !TestHelpers.IsRecord(t)
                 && !TestHelpers.IsDbContext(t)
                 && t.Namespace?.Contains(".Entities", StringComparison.Ordinal) != true
-                && t.Name != "Program")
+                && t.Name is not "Program" and not "AssemblyMarker")
             .ToList();
 
         var violations = classesRequiringTests
@@ -176,6 +178,45 @@ public class CodeStructureTests
 
         violations.Should().BeEmpty(
             $"Each source file must declare at most one public type. " +
+            $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
+    }
+
+    [Test]
+    public void Should_have_roundtrip_tests_for_polymorphic_json_types()
+    {
+        var assemblies = new[] { TestHelpers.CoreAssembly, TestHelpers.EtlAssembly, TestHelpers.ApiAssembly };
+
+        var polymorphicBaseTypes = assemblies
+            .SelectMany(a => a.GetTypes())
+            .Where(t => t.IsPublic
+                && t.GetCustomAttributes<JsonPolymorphicAttribute>().Any())
+            .ToList();
+
+        if (polymorphicBaseTypes.Count == 0)
+        {
+            Assert.Pass("No [JsonPolymorphic] types found — nothing to enforce.");
+        }
+
+        var testFixtureNames = TestHelpers.TestAssemblies
+            .SelectMany(a => a.GetTypes())
+            .Where(t => t.IsClass && t.IsPublic
+                && t.Name.EndsWith("Tests", StringComparison.Ordinal))
+            .Select(t => t.Name)
+            .ToHashSet();
+
+        var violations = polymorphicBaseTypes
+            .Where(t => !testFixtureNames.Contains(t.Name + "RoundtripTests")
+                && !testFixtureNames.Contains(t.Name + "SerializationTests"))
+            .Select(t =>
+            {
+                var derivedCount = t.GetCustomAttributes<JsonDerivedTypeAttribute>().Count();
+                return $"  {t.FullName} ({derivedCount} derived types) — expected {t.Name}RoundtripTests";
+            })
+            .ToList();
+
+        violations.Should().BeEmpty(
+            $"Types with [JsonPolymorphic] must have a roundtrip test fixture " +
+            $"that serializes and deserializes every [JsonDerivedType]. " +
             $"Violations ({violations.Count}):\n{string.Join("\n", violations)}");
     }
 
