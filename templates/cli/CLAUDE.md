@@ -32,6 +32,16 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 - **Architecture tests** in `tests/ConsoleApp.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
 - **Custom analyzers** in `src/ConsoleApp.Analyzers/` enforce CI0001-CI0013 (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc).
 
+## Testing judgment calls
+
+The toolchain enforces coverage (CI0002), assertion quality (CI0009), fixture existence, and naming. What it cannot enforce is *what kind* of test to write and *what* to assert on.
+
+**Unit vs integration:** a unit test mocks boundaries; an integration test crosses them. Decide based on: *if the mock were wrong, would you ship a bug?* Entry points (endpoints, background services) and persistence (database writes) almost always need integration tests — a mock can't verify routing, schema, serialization wire format, or transaction behavior. Everything else: unit test with mocks is usually sufficient.
+
+**What to assert:** assert on the observable outcome the feature promises, not on how it gets there internally. Query → returned data matches expectations. Command → side effect occurred (DB state changed, event published). Transformation → output structure and values are correct. If you're unsure, ask: "what would a user notice if this broke?"
+
+**When a mock is dangerous:** a mock is an assumption about how something else behaves. Mocking a stable in-process interface (ILogger, ITimeProvider) is always safe. Mocking a boundary where the contract can drift without your code changing (database queries, serialization formats, HTTP integrations) is where bugs hide. When the mock's fidelity matters to correctness, cross the boundary in a test instead.
+
 ## Key files
 
 - `.githooks/pre-commit` — commit-time enforcement
