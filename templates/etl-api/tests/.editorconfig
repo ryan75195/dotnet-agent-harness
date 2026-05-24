@@ -31,10 +31,11 @@ dotnet_diagnostic.CA1861.severity = none
 # Task.Run without TaskScheduler — fine in tests
 dotnet_diagnostic.CA2008.severity = none
 
-# CI0004-CI0006: structural rules don't apply to test fixtures
+# CI0004-CI0006, CI0014: structural rules don't apply to test fixtures
 dotnet_diagnostic.CI0004.severity = none
 dotnet_diagnostic.CI0005.severity = none
 dotnet_diagnostic.CI0006.severity = none
+dotnet_diagnostic.CI0014.severity = none
 
 # CI0007: method length — test methods can be long with arrange/act/assert
 dotnet_diagnostic.CI0007.severity = none
