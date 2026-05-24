@@ -23,7 +23,7 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 ## Code style
 
 - **No comments.** `NoCommentsAnalyzer` (CI0013) blocks `//`, `/* */`, and `///` at error severity. Extract intent into method names, variable names, or types. If a WHY is genuinely non-obvious (hidden constraint, bug workaround), extract it into a named helper — don't write a comment.
-- **`TreatWarningsAsErrors=true`** with `AnalysisLevel=latest-all`. Any CA/IDE/CS/CI diagnostic at severity `error` breaks the build. Exceptions: NU1510 and CI0002 show as non-blocking warnings.
+- **`TreatWarningsAsErrors=true`** with `AnalysisLevel=latest-all`. Any CA/IDE/CS/CI diagnostic at severity `error` breaks the build. Exception: NU1510 shows as a non-blocking warning.
 - Full style rules live in `.editorconfig` (root + `tests/` override). Nullable reference types enabled everywhere. File-scoped namespaces, Allman braces, `_camelCase` private fields, `I`-prefixed interfaces.
 
 ## Architecture

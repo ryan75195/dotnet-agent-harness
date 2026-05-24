@@ -31,9 +31,6 @@ dotnet_diagnostic.CA1861.severity = none
 # Task.Run without TaskScheduler — fine in tests
 dotnet_diagnostic.CA2008.severity = none
 
-# CI0002: Public method test coverage — enforced, blocks commits
-dotnet_diagnostic.CI0002.severity = error
-
 # CI0004-CI0006: structural rules don't apply to test fixtures
 dotnet_diagnostic.CI0004.severity = none
 dotnet_diagnostic.CI0005.severity = none

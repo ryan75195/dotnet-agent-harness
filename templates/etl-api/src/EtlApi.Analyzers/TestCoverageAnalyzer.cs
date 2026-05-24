@@ -16,9 +16,9 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         DiagnosticId,
         "Public method lacks test coverage",
-        "'{0}' does not test public method '{1}'",
+        "'{0}' does not adequately test '{1}' — add a [Test] method that invokes it and asserts on the result with Assert.That",
         "Testing",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         customTags: new[] { WellKnownDiagnosticTags.CompilationEnd });
 
@@ -87,7 +87,11 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
 
             if (IsMethodOnSourceType(invokedMethod, sourceType))
             {
-                coveredMethods[fixtureType.Name].TryAdd(invokedMethod.Name, 0);
+                var testMethod = FindContainingTestMethod(context.Node);
+                if (testMethod != null && ContainsAssertion(testMethod))
+                {
+                    coveredMethods[fixtureType.Name].TryAdd(invokedMethod.Name, 0);
+                }
             }
         }
     }
@@ -114,6 +118,76 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
+    }
+
+    private static MethodDeclarationSyntax? FindContainingTestMethod(SyntaxNode node)
+    {
+        var current = node.Parent;
+        while (current != null)
+        {
+            if (current is MethodDeclarationSyntax method && HasTestAttribute(method))
+            {
+                return method;
+            }
+
+            current = current.Parent;
+        }
+
+        return null;
+    }
+
+    private static bool HasTestAttribute(MethodDeclarationSyntax method)
+    {
+        return method.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .Any(a =>
+            {
+                var name = a.Name.ToString();
+                return name is "Test" or "TestCase"
+                    or "NUnit.Framework.Test" or "NUnit.Framework.TestCase";
+            });
+    }
+
+    private static bool ContainsAssertion(MethodDeclarationSyntax method)
+    {
+        var body = (SyntaxNode?)method.Body ?? method.ExpressionBody;
+        if (body == null)
+        {
+            return false;
+        }
+
+        return body.DescendantNodes()
+            .OfType<InvocationExpressionSyntax>()
+            .Any(IsAssertionCall);
+    }
+
+    private static bool IsAssertionCall(InvocationExpressionSyntax invocation)
+    {
+        var expression = invocation.Expression;
+
+        if (expression is MemberAccessExpressionSyntax memberAccess)
+        {
+            var methodName = memberAccess.Name.Identifier.Text;
+            var target = memberAccess.Expression.ToString();
+
+            if (target is "Assert" or "NUnit.Framework.Assert")
+            {
+                return methodName is "That" or "Throws" or "ThrowsAsync"
+                    or "Multiple" or "DoesNotThrow" or "DoesNotThrowAsync";
+            }
+
+            if (methodName == "Should")
+            {
+                return true;
+            }
+
+            if (methodName == "Received" || methodName == "DidNotReceive")
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static ImmutableArray<(INamedTypeSymbol fixtureType, INamedTypeSymbol sourceType)> FindTestFixtures(

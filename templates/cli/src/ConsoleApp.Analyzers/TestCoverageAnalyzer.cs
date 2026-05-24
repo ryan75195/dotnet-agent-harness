@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -16,9 +16,9 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         DiagnosticId,
         "Public method lacks test coverage",
-        "'{0}' does not test public method '{1}'",
+        "'{0}' does not adequately test '{1}' — add a [Test] method that invokes it and asserts on the result with Assert.That",
         "Testing",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         customTags: new[] { WellKnownDiagnosticTags.CompilationEnd });
 
@@ -87,7 +87,11 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
 
             if (IsMethodOnSourceType(invokedMethod, sourceType))
             {
-                coveredMethods[fixtureType.Name].TryAdd(invokedMethod.Name, 0);
+                var testMethod = FindContainingTestMethod(context.Node);
+                if (testMethod != null && ContainsAssertion(testMethod))
+                {
+                    coveredMethods[fixtureType.Name].TryAdd(invokedMethod.Name, 0);
+                }
             }
         }
     }
@@ -116,6 +120,76 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
         }
     }
 
+    private static MethodDeclarationSyntax? FindContainingTestMethod(SyntaxNode node)
+    {
+        var current = node.Parent;
+        while (current != null)
+        {
+            if (current is MethodDeclarationSyntax method && HasTestAttribute(method))
+            {
+                return method;
+            }
+
+            current = current.Parent;
+        }
+
+        return null;
+    }
+
+    private static bool HasTestAttribute(MethodDeclarationSyntax method)
+    {
+        return method.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .Any(a =>
+            {
+                var name = a.Name.ToString();
+                return name is "Test" or "TestCase"
+                    or "NUnit.Framework.Test" or "NUnit.Framework.TestCase";
+            });
+    }
+
+    private static bool ContainsAssertion(MethodDeclarationSyntax method)
+    {
+        var body = (SyntaxNode?)method.Body ?? method.ExpressionBody;
+        if (body == null)
+        {
+            return false;
+        }
+
+        return body.DescendantNodes()
+            .OfType<InvocationExpressionSyntax>()
+            .Any(IsAssertionCall);
+    }
+
+    private static bool IsAssertionCall(InvocationExpressionSyntax invocation)
+    {
+        var expression = invocation.Expression;
+
+        if (expression is MemberAccessExpressionSyntax memberAccess)
+        {
+            var methodName = memberAccess.Name.Identifier.Text;
+            var target = memberAccess.Expression.ToString();
+
+            if (target is "Assert" or "NUnit.Framework.Assert")
+            {
+                return methodName is "That" or "Throws" or "ThrowsAsync"
+                    or "Multiple" or "DoesNotThrow" or "DoesNotThrowAsync";
+            }
+
+            if (methodName == "Should")
+            {
+                return true;
+            }
+
+            if (methodName == "Received" || methodName == "DidNotReceive")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static ImmutableArray<(INamedTypeSymbol fixtureType, INamedTypeSymbol sourceType)> FindTestFixtures(
         Compilation compilation)
     {
@@ -133,7 +207,6 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            // Only consider types declared in the current compilation (not referenced assemblies)
             if (!type.Locations.Any(loc => loc.IsInSource
                 && compilation.SyntaxTrees.Contains(loc.SourceTree)))
             {
@@ -161,7 +234,6 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
     private static INamedTypeSymbol? FindSourceType(
         Compilation compilation, string name, INamedTypeSymbol fixtureType)
     {
-        // Search current compilation (for verifier tests where both types are in same compilation)
         foreach (var type in GetAllTypes(compilation.GlobalNamespace))
         {
             if (type.Name == name
@@ -172,7 +244,6 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        // Search referenced assemblies
         foreach (var reference in compilation.References)
         {
             var symbol = compilation.GetAssemblyOrModuleSymbol(reference);
@@ -216,12 +287,10 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        // Check if called through an interface that sourceType implements
         foreach (var iface in sourceType.AllInterfaces)
         {
             if (SymbolEqualityComparer.Default.Equals(containingType, iface))
             {
-                // Verify the interface has a method with this name
                 if (iface.GetMembers(invokedMethod.Name).Any())
                 {
                     return true;
