@@ -40,7 +40,7 @@ Pick `cli` by default. Move to `etl-api` only when you actually need both surfac
 
 ```powershell
 git clone https://github.com/ryan75195/dotnet-agent-harness
-dotnet new install .\dotnet-agent-harness
+dotnet new install .\dotnet-agent-harness\dotnet
 ```
 
 Both templates register at once. Verify:
@@ -85,16 +85,16 @@ dotnet new uninstall <path-you-used-at-install-time>
 
 ```
 dotnet-agent-harness/
-  README.md                              ← this file
-  .github/workflows/template-ci.yml      ← CI: scaffold + build + test both templates on every push
-  template-tests/scaffold-and-build.ps1  ← local validation: .\template-tests\scaffold-and-build.ps1 cli
-  templates/
-    cli/
-      .template.config/template.json     ← template manifest
-      src/, tests/, .githooks/, .claude/, CLAUDE.md, ...
-    etl-api/
-      .template.config/template.json
-      src/, tests/, .githooks/, .claude/, CLAUDE.md, ...
+  README.md                                     ← multi-language index
+  .github/workflows/template-ci.yml             ← CI for all templates
+  dotnet/
+    README.md                                   ← this file
+    template-tests/scaffold-and-build.ps1
+    templates/
+      cli/
+      etl-api/
+  expo/
+    ...                                         ← Expo app template (see root README)
 ```
 
 Each template directory under `templates/` is a self-contained `dotnet new` template. `dotnet new install <harness-root>` recursively scans for `.template.config/template.json` and registers both.
@@ -104,8 +104,8 @@ Each template directory under `templates/` is a self-contained `dotnet new` temp
 This harness repo doesn't have its own pre-commit hooks (those only fire in scaffolded projects). The CI workflow is the safety net — it scaffolds + builds + tests both templates on every push. To verify changes locally before pushing:
 
 ```powershell
-.\template-tests\scaffold-and-build.ps1 cli
-.\template-tests\scaffold-and-build.ps1 etl-api
+.\dotnet\template-tests\scaffold-and-build.ps1 cli
+.\dotnet\template-tests\scaffold-and-build.ps1 etl-api
 ```
 
 Each invocation installs the chosen template, scaffolds a smoke project into `$env:TEMP`, builds it, runs all four test projects, and uninstalls.
