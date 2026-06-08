@@ -67,3 +67,35 @@ To also build on CI, add an `EXPO_TOKEN` repository secret (from
           token: ${{ secrets.EXPO_TOKEN }}
       - run: eas build --platform ios --profile preview --non-interactive
 ```
+
+## Account deletion endpoint
+
+Apple requires in-app account deletion (Guideline 5.1.1(v)) for apps with
+accounts. The app ships the full client flow (Settings → Delete account →
+confirm). The actual deletion runs on YOUR backend, because deleting an Auth0
+user needs the Management API client secret, which must never be in the app.
+
+Set `EXPO_PUBLIC_ACCOUNT_DELETE_URL` to an endpoint that:
+
+1. Accepts `DELETE` with header `Authorization: Bearer <user access token>`.
+2. Verifies the token against the Auth0 JWKS and extracts the `sub` claim.
+3. Calls the Auth0 Management API to delete that user.
+4. Returns `204` on success.
+
+Reference (Node, illustrative — not shipped):
+
+```js
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+const jwks = createRemoteJWKSet(new URL(`https://${AUTH0_DOMAIN}/.well-known/jwks.json`));
+
+export async function handleDelete(request) {
+  const token = request.headers.authorization?.replace('Bearer ', '');
+  const { payload } = await jwtVerify(token, jwks, { issuer: `https://${AUTH0_DOMAIN}/` });
+  await fetch(`https://${AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(payload.sub)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${MANAGEMENT_API_TOKEN}` }
+  });
+  return new Response(null, { status: 204 });
+}
+```

@@ -102,6 +102,17 @@ check('Apple Sign In configured when auth is enabled', () => {
   );
 });
 
+check('account deletion endpoint set when auth is enabled', () => {
+  const authOn = Boolean(process.env.EXPO_PUBLIC_AUTH0_DOMAIN) && Boolean(process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID);
+  if (!authOn) {
+    return true;
+  }
+  return (
+    Boolean(process.env.EXPO_PUBLIC_ACCOUNT_DELETE_URL) ||
+    'EXPO_PUBLIC_ACCOUNT_DELETE_URL required when auth is enabled (Apple 5.1.1(v) requires in-app account deletion)'
+  );
+});
+
 for (const result of checks) {
   const mark = result.ok ? 'PASS' : 'FAIL';
   const detail = result.ok ? '' : ` — ${result.detail}`;

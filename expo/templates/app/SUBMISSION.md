@@ -18,6 +18,7 @@ Stages are strictly ordered — never start stage N+1 with unchecked items in st
 | Auth0 domain | _unset_ |
 | Auth0 client ID | _unset_ |
 | Auth0 callback URL | _unset_ |
+| Account delete endpoint | _unset_ |
 | Demo account (review) | _unset_ |
 | Privacy policy URL | _unset_ |
 | Support URL | _unset_ |
@@ -39,6 +40,7 @@ Stages are strictly ordered — never start stage N+1 with unchecked items in st
 - [ ] (If using auth) Auth0 tenant + native application configured (skill: auth-setup)
 - [ ] (If using auth) Sign in with Apple enabled in Auth0 (required by Apple when any social login is offered)
 - [ ] (If using auth) EXPO_PUBLIC_AUTH0_DOMAIN and EXPO_PUBLIC_AUTH0_CLIENT_ID set together in .env.production
+- [ ] (If using auth) Account deletion endpoint deployed and EXPO_PUBLIC_ACCOUNT_DELETE_URL set (Apple 5.1.1(v) requires in-app account deletion)
 - [ ] `npm run doctor` passes
 
 ## Stage 2 — ASC app record (skill: asc-setup)
