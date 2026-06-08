@@ -8,7 +8,8 @@ const ruleTester = new RuleTester({
 ruleTester.run('no-comments', rule, {
   valid: [
     { code: 'const a = 1;' },
-    { code: 'export function f() { return 1; }' }
+    { code: 'export function f() { return 1; }' },
+    { code: '#!/usr/bin/env node\nconst a = 1;' }
   ],
   invalid: [
     { code: 'const a = 1; // note', errors: [{ messageId: 'noComments' }] },

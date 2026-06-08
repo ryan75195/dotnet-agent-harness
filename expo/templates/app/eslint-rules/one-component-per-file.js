@@ -2,7 +2,10 @@ function exportedName(declaration) {
   if (!declaration) {
     return null;
   }
-  if (declaration.type === 'FunctionDeclaration' && declaration.id) {
+  if (
+    (declaration.type === 'FunctionDeclaration' || declaration.type === 'ClassDeclaration') &&
+    declaration.id
+  ) {
     return declaration.id.name;
   }
   if (declaration.type === 'VariableDeclaration') {
@@ -11,7 +14,7 @@ function exportedName(declaration) {
       declarator &&
       declarator.id.type === 'Identifier' &&
       declarator.init &&
-      ['ArrowFunctionExpression', 'FunctionExpression'].includes(declarator.init.type);
+      ['ArrowFunctionExpression', 'FunctionExpression', 'CallExpression'].includes(declarator.init.type);
     return isFunction ? declarator.id.name : null;
   }
   return null;
