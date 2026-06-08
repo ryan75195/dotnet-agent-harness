@@ -81,6 +81,16 @@ describe('appleSignIn', () => {
     expect(session?.tokens.accessToken).toBe('apple-id-token');
   });
 
+  test('returns null when Apple omits the identity token', async () => {
+    mockedApple.signInAsync.mockResolvedValue({
+      user: 'apple-9',
+      email: null,
+      fullName: null,
+      identityToken: null
+    } as Awaited<ReturnType<typeof AppleAuthentication.signInAsync>>);
+    expect(await appleSignIn()).toBeNull();
+  });
+
   test('null name when fullName is absent', async () => {
     mockedApple.signInAsync.mockResolvedValue({
       user: 'apple-9',

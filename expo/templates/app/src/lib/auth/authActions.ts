@@ -58,10 +58,13 @@ export async function appleSignIn(): Promise<Session | null> {
         AppleAuthentication.AppleAuthenticationScope.EMAIL
       ]
     });
+    if (!credential.identityToken) {
+      return null;
+    }
     const tokens: TokenSet = {
-      accessToken: credential.identityToken ?? '',
+      accessToken: credential.identityToken,
       refreshToken: null,
-      idToken: credential.identityToken ?? null,
+      idToken: credential.identityToken,
       expiresAt: Date.now() + 3600 * 1000
     };
     await saveTokens(tokens);

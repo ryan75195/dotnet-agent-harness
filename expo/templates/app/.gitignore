@@ -3,6 +3,8 @@ node_modules/
 coverage/
 ios/
 android/
+.env
 .env.local
 .env.production
+.env*.local
 *.p8
