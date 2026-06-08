@@ -52,6 +52,17 @@ try {
     Write-Host "Doctor must fail on a fresh scaffold (no icon, example bundle id)..."
     node scripts/submission-doctor.js
     if ($LASTEXITCODE -eq 0) { throw 'submission-doctor unexpectedly passed on a fresh scaffold' }
+
+    Write-Host "Partial auth config must fail the production config load..."
+    $env:NODE_ENV = 'production'
+    $env:EXPO_PUBLIC_REVENUECAT_IOS_API_KEY = 'smoke-key'
+    $env:EXPO_PUBLIC_AUTH0_DOMAIN = 'smoke.auth0.com'
+    node -e "try { require('./app.config.js'); process.exit(0) } catch (e) { process.exit(7) }"
+    $partialExit = $LASTEXITCODE
+    Remove-Item Env:NODE_ENV
+    Remove-Item Env:EXPO_PUBLIC_REVENUECAT_IOS_API_KEY
+    Remove-Item Env:EXPO_PUBLIC_AUTH0_DOMAIN
+    if ($partialExit -ne 7) { throw "partial auth config did not fail app.config.js (exit $partialExit)" }
 }
 finally {
     Pop-Location
