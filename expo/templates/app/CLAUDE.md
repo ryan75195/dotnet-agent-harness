@@ -50,6 +50,12 @@ branch are blocked (Claude Code PreToolUse hooks + pre-commit).
 - Subscriptions: `src/lib/purchases/` wraps RevenueCat. The entitlement id
   is `PREMIUM_ENTITLEMENT` in `useSubscription.ts` and must match the
   RevenueCat dashboard.
+- Auth: `src/lib/auth/` wraps Auth0 (OIDC via expo-auth-session) and native
+  Apple Sign In. It is inert until `EXPO_PUBLIC_AUTH0_DOMAIN` and
+  `EXPO_PUBLIC_AUTH0_CLIENT_ID` are set. `useAuth()` exposes `getToken()` —
+  the single accessor for attaching a bearer token to your backend calls.
+  When auth and payments are both on, `App.tsx` calls `syncPurchasesIdentity`
+  so RevenueCat entitlements follow the account.
 
 ## App Store submission — orchestration
 
@@ -64,7 +70,7 @@ submission-related request ("set up the app store", "create the products",
 | Stage | Owner |
 |---|---|
 | 0 Prerequisites | human (verify, don't automate) |
-| 1 Local readiness | submission-doctor |
+| 1 Local readiness | submission-doctor; auth-setup (if using auth) |
 | 2 ASC app record | asc-setup |
 | 3 Subscription products | asc-setup |
 | 4 RevenueCat | revenuecat-setup |
@@ -84,7 +90,7 @@ submission-related request ("set up the app store", "create the products",
 
 - `SUBMISSION.md` — submission state machine
 - `.claude/skills/` — submission-doctor, asc-setup, revenuecat-setup,
-  build-and-submit
+  build-and-submit, auth-setup
 - `scripts/submission-doctor.js` — local readiness checks (`npm run doctor`)
 - `.githooks/` + `.claude/hooks/` — lifecycle enforcement
 - `eslint.config.js` + `eslint-rules/` — style enforcement
