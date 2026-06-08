@@ -21,4 +21,16 @@ describe('HomeScreen', () => {
     fireEvent.press(screen.getByText('Upgrade'));
     expect(onUpgradePress).toHaveBeenCalled();
   });
+
+  test('shows the settings affordance when onSettingsPress is provided', () => {
+    const onSettingsPress = jest.fn();
+    render(<HomeScreen isSubscribed={true} onUpgradePress={jest.fn()} onSettingsPress={onSettingsPress} />);
+    fireEvent.press(screen.getByText('Settings'));
+    expect(onSettingsPress).toHaveBeenCalled();
+  });
+
+  test('hides the settings affordance when onSettingsPress is absent', () => {
+    render(<HomeScreen isSubscribed={true} onUpgradePress={jest.fn()} />);
+    expect(screen.queryByText('Settings')).toBeNull();
+  });
 });
