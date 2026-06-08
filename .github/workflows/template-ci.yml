@@ -31,3 +31,16 @@ jobs:
       - name: Run scaffolded tests
         working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
         run: dotnet test --no-build --verbosity minimal
+
+  expo-scaffold-and-validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Scaffold and validate expo template
+        shell: pwsh
+        run: ./expo/template-tests/scaffold-and-validate.ps1
