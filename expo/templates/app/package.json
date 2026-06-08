@@ -15,8 +15,13 @@
   "dependencies": {
     "dotenv": "^17.0.1",
     "expo": "^55.0.5",
+    "expo-apple-authentication": "~55.0.13",
+    "expo-auth-session": "~55.0.16",
+    "expo-crypto": "~55.0.15",
     "expo-dev-client": "~55.0.13",
+    "expo-secure-store": "~55.0.14",
     "expo-status-bar": "~55.0.4",
+    "expo-web-browser": "~55.0.16",
     "react": "19.2.0",
     "react-native": "0.83.6",
     "react-native-purchases": "^9.6.6"
