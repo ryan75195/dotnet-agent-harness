@@ -23,7 +23,13 @@ module.exports = {
       severity: 'error',
       from: { path: '^src/components/' },
       to: { path: '^src/(app|features)/' }
-    }
+    },
+    {
+      name: 'features-no-route-import',
+      severity: 'error',
+      from: { path: '^src/features/' },
+      to: { path: '^src/app/' }
+    },
   ],
   options: {
     doNotFollow: { path: 'node_modules' },
