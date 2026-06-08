@@ -17,6 +17,9 @@ npm run verify
 npx expo start
 ```
 
+Navigation is file-based (expo-router): routes live in `src/app/`, screens in
+`src/features/`.
+
 Note: `react-native-purchases` is a native module — use a development build
 (`eas build --profile development` or `npx expo run:ios`), not Expo Go.
 

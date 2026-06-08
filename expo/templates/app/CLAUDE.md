@@ -39,11 +39,12 @@ server.
 
 ## Architecture
 
-- `src/app/` — screens and navigation. May import anything.
+- `src/app/` — expo-router routes (file-based). Thin glue: route files own
+  router hooks and pass plain props to screens. Not coverage-gated.
 - `src/components/` — shared presentational components. May import `lib`
   only.
-- `src/features/<name>/` — vertical feature slices. Never import a sibling
-  feature.
+- `src/features/<name>/` — screen UIs and feature logic, as pure props-driven
+  components. Coverage-gated. Never import a sibling feature or `src/app`.
 - `src/lib/` — platform/service wrappers (purchases, storage, api). Never
   imports app/features/components.
 - dependency-cruiser enforces all of the above at error severity
@@ -58,6 +59,9 @@ server.
   Apple Sign In. It is inert until `EXPO_PUBLIC_AUTH0_DOMAIN` and
   `EXPO_PUBLIC_AUTH0_CLIENT_ID` are set. `useAuth()` exposes `getToken()` —
   the single accessor for attaching a bearer token to your backend calls.
+  `AuthProvider` (in `src/lib/auth/`) lifts `useAuth` once for the whole tree;
+  `src/app/(app)/_layout.tsx` redirects to `/sign-in` when auth is enabled and
+  the user is signed out (the config-gated login wall).
   When auth and payments are both on, `App.tsx` calls `syncPurchasesIdentity`
   so RevenueCat entitlements follow the account.
 

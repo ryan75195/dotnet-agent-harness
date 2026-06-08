@@ -71,6 +71,10 @@ try {
     if ($ciText -notmatch 'name:\s*ci') { throw 'ci.yml missing the workflow name' }
     if ($ciText -notmatch 'npm ci') { throw 'ci.yml does not run npm ci' }
     if ($ciText -notmatch 'npm run verify') { throw 'ci.yml does not run npm run verify' }
+
+    Write-Host "expo-router root layout must ship in the scaffold..."
+    $layoutPath = Join-Path $scaffoldDir 'src\app\_layout.tsx'
+    if (-not (Test-Path $layoutPath)) { throw "src/app/_layout.tsx missing from scaffold at $layoutPath" }
 }
 finally {
     Pop-Location
