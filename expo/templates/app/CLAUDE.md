@@ -62,7 +62,7 @@ server.
   `AuthProvider` (in `src/lib/auth/`) lifts `useAuth` once for the whole tree;
   `src/app/(app)/_layout.tsx` redirects to `/sign-in` when auth is enabled and
   the user is signed out (the config-gated login wall).
-  When auth and payments are both on, `App.tsx` calls `syncPurchasesIdentity`
+  When auth and payments are both on, `AuthProvider` calls `syncPurchasesIdentity`
   so RevenueCat entitlements follow the account.
   Account deletion (`useDeleteAccount`) calls `EXPO_PUBLIC_ACCOUNT_DELETE_URL`
   with the user's bearer token and then signs out; the backend performs the

@@ -75,6 +75,16 @@ try {
     Write-Host "expo-router root layout must ship in the scaffold..."
     $layoutPath = Join-Path $scaffoldDir 'src\app\_layout.tsx'
     if (-not (Test-Path $layoutPath)) { throw "src/app/_layout.tsx missing from scaffold at $layoutPath" }
+
+    Write-Host "Doctor must flag missing account-deletion endpoint when auth is enabled..."
+    $env:EXPO_PUBLIC_AUTH0_DOMAIN = 'smoke.auth0.com'
+    $env:EXPO_PUBLIC_AUTH0_CLIENT_ID = 'smoke-client'
+    $deleteDoctorOut = node scripts/submission-doctor.js 2>&1 | Out-String
+    Remove-Item Env:EXPO_PUBLIC_AUTH0_DOMAIN
+    Remove-Item Env:EXPO_PUBLIC_AUTH0_CLIENT_ID
+    if ($deleteDoctorOut -notmatch 'EXPO_PUBLIC_ACCOUNT_DELETE_URL required when auth is enabled') {
+        throw 'submission-doctor did not flag the missing account-deletion endpoint'
+    }
 }
 finally {
     Pop-Location
