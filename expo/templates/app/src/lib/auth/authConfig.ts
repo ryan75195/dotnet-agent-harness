@@ -15,3 +15,8 @@ export function getAuthConfig(): AuthConfig | null {
 export function isAuthEnabled(): boolean {
   return getAuthConfig() !== null;
 }
+
+export function getAccountDeleteUrl(): string | null {
+  const url = process.env.EXPO_PUBLIC_ACCOUNT_DELETE_URL ?? '';
+  return url === '' ? null : url;
+}

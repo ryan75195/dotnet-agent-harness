@@ -88,3 +88,11 @@ export async function resolveToken(config: AuthConfig, current: TokenSet): Promi
   await saveTokens(refreshed);
   return { token: refreshed.accessToken, tokens: refreshed };
 }
+
+export async function requestAccountDeletion(deleteUrl: string, accessToken: string): Promise<boolean> {
+  const response = await fetch(deleteUrl, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  return response.ok;
+}

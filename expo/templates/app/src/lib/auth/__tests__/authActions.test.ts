@@ -1,7 +1,7 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 
 import * as authClient from '../authClient';
-import { appleSignIn, passwordSignIn, resolveToken, restoreSession } from '../authActions';
+import { appleSignIn, passwordSignIn, requestAccountDeletion, resolveToken, restoreSession } from '../authActions';
 import * as tokenStore from '../tokenStore';
 
 jest.mock('../authClient');
@@ -118,5 +118,22 @@ describe('resolveToken', () => {
     mockedClient.refreshTokens.mockResolvedValue({ ...tokens, accessToken: 'fresh' });
     const resolved = await resolveToken(config, tokens);
     expect(resolved?.token).toBe('fresh');
+  });
+});
+
+describe('requestAccountDeletion', () => {
+  test('sends a DELETE with the bearer token and returns true on ok', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
+    const result = await requestAccountDeletion('https://api.example.com/account', 'tok-1');
+    expect(result).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith('https://api.example.com/account', {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer tok-1' }
+    });
+  });
+
+  test('returns false when the server responds not-ok', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false }) as unknown as typeof fetch;
+    expect(await requestAccountDeletion('https://api.example.com/account', 'tok-1')).toBe(false);
   });
 });
