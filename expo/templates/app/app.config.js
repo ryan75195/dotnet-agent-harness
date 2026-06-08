@@ -26,8 +26,8 @@ if (isProduction) {
 
 const bundleId = isProduction ? 'com.example.apptemplate' : 'com.example.apptemplate.dev';
 const plugins = isProduction
-  ? ['expo-apple-authentication']
-  : ['expo-dev-client', 'expo-apple-authentication'];
+  ? ['expo-router', 'expo-apple-authentication']
+  : ['expo-router', 'expo-dev-client', 'expo-apple-authentication'];
 
 module.exports = {
   expo: {
