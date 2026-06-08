@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 process.env.NODE_ENV = 'production';
+process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY || 'doctor-stub';
 
 const checks = [];
 
