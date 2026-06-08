@@ -1,4 +1,11 @@
 $ErrorActionPreference = 'Stop'
+# In pwsh 7.3+, $PSNativeCommandUseErrorActionPreference defaults to $true which causes
+# any native command with a non-zero exit code to throw a terminating error, bypassing
+# our manual $LASTEXITCODE checks. We disable it here so the script can intentionally
+# run commands that exit non-zero (e.g. eslint on a seeded violation, submission-doctor).
+if ($null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue)) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $expoRoot = Split-Path -Parent $PSScriptRoot
 $scaffoldDir = Join-Path $env:TEMP 'expo-template-smoke'
