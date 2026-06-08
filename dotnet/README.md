@@ -72,7 +72,7 @@ From here, point your agent at the project and let it work. The first time it tr
 ```powershell
 cd dotnet-agent-harness
 git pull
-dotnet new install . --force
+dotnet new install .\dotnet --force
 ```
 
 ## Uninstall
