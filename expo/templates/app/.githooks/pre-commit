@@ -1,0 +1,34 @@
+#!/bin/bash
+
+BRANCH=$(git branch --show-current 2>/dev/null)
+if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+  echo "BLOCKED: Cannot commit directly to $BRANCH. Create a feature branch first."
+  exit 1
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+cd "$REPO_ROOT" || exit 1
+
+if [ -x "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" ]; then
+  "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" || exit $?
+fi
+
+echo "=== Pre-Commit Checks ==="
+
+echo "--- Typecheck ---"
+npx tsc --noEmit || { echo "TYPECHECK FAILED. Fix all type errors before committing."; exit 1; }
+
+echo "--- Lint ---"
+npx eslint . --max-warnings 0 || { echo "LINT FAILED. local/no-comments and friends fire at error severity."; exit 1; }
+
+echo "--- Dependency rules ---"
+npx depcruise src --config .dependency-cruiser.cjs || { echo "DEPENDENCY RULES FAILED. See .dependency-cruiser.cjs."; exit 1; }
+
+echo "--- Test files ---"
+node scripts/check-test-files.js || exit 1
+
+echo "--- Tests + coverage ---"
+npx jest --coverage --silent || { echo "TESTS FAILED (or coverage below threshold)."; exit 1; }
+
+echo "=== All checks passed ==="
+exit 0
