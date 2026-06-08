@@ -17,6 +17,10 @@ function check(name, fn) {
 
 let config = null;
 
+function pluginNames(cfg) {
+  return (cfg.plugins || []).map((entry) => (Array.isArray(entry) ? entry[0] : entry));
+}
+
 check('app.config.js loads with production env', () => {
   config = require(path.resolve('app.config.js')).expo;
   return true;
@@ -78,6 +82,25 @@ check('eas.json has a production build profile', () => {
 });
 
 check('SUBMISSION.md exists', () => fs.existsSync('SUBMISSION.md') || 'SUBMISSION.md is missing');
+
+check('auth env vars are all-or-nothing', () => {
+  const set = ['EXPO_PUBLIC_AUTH0_DOMAIN', 'EXPO_PUBLIC_AUTH0_CLIENT_ID'].filter((name) => process.env[name]);
+  return set.length === 0 || set.length === 2 || 'set EXPO_PUBLIC_AUTH0_DOMAIN and EXPO_PUBLIC_AUTH0_CLIENT_ID together';
+});
+
+check('Apple Sign In configured when auth is enabled', () => {
+  const authOn = Boolean(process.env.EXPO_PUBLIC_AUTH0_DOMAIN) && Boolean(process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID);
+  if (!authOn) {
+    return true;
+  }
+  if (!config) {
+    return 'app.config.js did not load';
+  }
+  return (
+    pluginNames(config).includes('expo-apple-authentication') ||
+    'expo-apple-authentication plugin missing (Apple requires Sign in with Apple when offering social login)'
+  );
+});
 
 for (const result of checks) {
   const mark = result.ok ? 'PASS' : 'FAIL';
