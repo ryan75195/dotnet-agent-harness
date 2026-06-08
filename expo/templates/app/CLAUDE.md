@@ -21,6 +21,10 @@ enforce each transition.
 Direct edits and commits to `main` are blocked. Edits to an already-merged
 branch are blocked (Claude Code PreToolUse hooks + pre-commit).
 
+CI (`.github/workflows/ci.yml`) re-runs `npm run verify` on every PR and on
+pushes to `main` — the same gate the pre-commit hook enforces, now on the
+server.
+
 ## Code style
 
 - **No comments.** `local/no-comments` fires at error severity. Extract
@@ -95,3 +99,4 @@ submission-related request ("set up the app store", "create the products",
 - `.githooks/` + `.claude/hooks/` — lifecycle enforcement
 - `eslint.config.js` + `eslint-rules/` — style enforcement
 - `.dependency-cruiser.cjs` — layering enforcement
+- `.github/workflows/ci.yml` — server-side guardrail enforcement on PRs

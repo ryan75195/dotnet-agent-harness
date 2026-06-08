@@ -1,8 +1,13 @@
 # AppTemplate
 
+![CI](https://github.com/YOUR_GITHUB_USER/YOUR_REPO/actions/workflows/ci.yml/badge.svg)
+
 Expo app scaffolded from the agent-harness expo template: error-severity
 guardrails for agent-driven development plus a staged, resumable iOS App
 Store submission workflow.
+
+After `gh repo create`, replace `YOUR_GITHUB_USER/YOUR_REPO` in the badge above
+with your repository path.
 
 ## Quick start
 
@@ -32,3 +37,30 @@ Note: `react-native-purchases` is a native module — use a development build
 Read `SUBMISSION.md` (the state machine), then ask Claude:
 "run the submission doctor". CLAUDE.md routes each stage to the right
 skill (asc-setup, revenuecat-setup, build-and-submit).
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs the full guardrail set (`npm run verify`) on
+every pull request and on pushes to `main` — the same checks the local
+`.githooks/pre-commit` runs, enforced on GitHub's runners so they cannot be
+skipped with `--no-verify`.
+
+### Add an EAS build to CI (optional)
+
+To also build on CI, add an `EXPO_TOKEN` repository secret (from
+`expo.dev` → Account → Access tokens) and append this job to `ci.yml`:
+
+```yaml
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --platform ios --profile preview --non-interactive
+```
