@@ -1,0 +1,8 @@
+node_modules/
+.expo/
+coverage/
+ios/
+android/
+.env.local
+.env.production
+*.p8
