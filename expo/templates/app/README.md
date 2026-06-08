@@ -99,3 +99,25 @@ export async function handleDelete(request) {
   return new Response(null, { status: 204 });
 }
 ```
+
+## API client
+
+`src/lib/api/` is a typed fetch wrapper that attaches the Auth0 bearer token
+automatically. Set `EXPO_PUBLIC_API_BASE_URL` to your backend's base URL, then:
+
+```tsx
+import { useApi } from './src/lib/api/useApi';
+
+function Profile() {
+  const api = useApi();
+  const load = () => api.get('/me');
+  return null;
+}
+```
+
+`api.get<T>('/path')`, `api.post<T>('/path', body)`, `api.put`, and `api.del`
+return parsed JSON typed as `T`. Requests carry `Authorization: Bearer <token>`
+when a user is signed in and omit it otherwise (public endpoints still work).
+Non-2xx responses throw an `ApiError` with `status` and `body`. Outside React,
+use `createApiClient(getToken)` directly. The base URL is optional — a
+backend-less app simply never sets it.

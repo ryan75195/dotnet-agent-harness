@@ -46,7 +46,9 @@ server.
 - `src/features/<name>/` — screen UIs and feature logic, as pure props-driven
   components. Coverage-gated. Never import a sibling feature or `src/app`.
 - `src/lib/` — platform/service wrappers (purchases, storage, api). Never
-  imports app/features/components.
+  imports app/features/components. The API client (`src/lib/api/`) wraps `fetch`
+  and auto-attaches the auth bearer token; use `useApi()` in screens or
+  `createApiClient(getToken)` elsewhere.
 - dependency-cruiser enforces all of the above at error severity
   (`.dependency-cruiser.cjs`).
 - Every module in `src/lib` and `src/features` must have a
