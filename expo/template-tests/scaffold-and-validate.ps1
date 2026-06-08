@@ -59,5 +59,6 @@ finally {
 
 Write-Host ""
 Write-Host "Expo template validation passed. Cleaning up..."
-Remove-Item -Recurse -Force $scaffoldDir
+Remove-Item -Recurse -Force $scaffoldDir -ErrorAction SilentlyContinue
 Write-Host "Done."
+exit 0
