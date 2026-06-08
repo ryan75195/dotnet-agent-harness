@@ -63,6 +63,14 @@ try {
     Remove-Item Env:EXPO_PUBLIC_REVENUECAT_IOS_API_KEY
     Remove-Item Env:EXPO_PUBLIC_AUTH0_DOMAIN
     if ($partialExit -ne 7) { throw "partial auth config did not fail app.config.js (exit $partialExit)" }
+
+    Write-Host "CI workflow must ship in the scaffold..."
+    $ciPath = Join-Path $scaffoldDir '.github\workflows\ci.yml'
+    if (-not (Test-Path $ciPath)) { throw "ci.yml missing from scaffold at $ciPath" }
+    $ciText = Get-Content $ciPath -Raw
+    if ($ciText -notmatch 'name:\s*ci') { throw 'ci.yml missing the workflow name' }
+    if ($ciText -notmatch 'npm ci') { throw 'ci.yml does not run npm ci' }
+    if ($ciText -notmatch 'npm run verify') { throw 'ci.yml does not run npm run verify' }
 }
 finally {
     Pop-Location
