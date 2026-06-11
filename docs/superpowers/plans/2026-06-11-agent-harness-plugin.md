@@ -169,6 +169,12 @@ git commit -m "Add agent-harness plugin skeleton and validation script"
 
 ### Task 2: write-stamp.ps1
 
+> **AMENDMENT (during execution):** PS 5.1 dictionaries are case-insensitive and
+> `ConvertFrom-Json` rejects JSON keys differing only by case, so `renames` is an
+> ordered ARRAY of `{from, to}` pairs, not an object. write-stamp.ps1 builds
+> `$renames = @([ordered]@{ from = '...'; to = ... }, ...)` and tests assert
+> order + values with `-ceq` on the array. Tasks 8/9 below already reflect this.
+
 **Files:**
 - Create: `plugin/scripts/write-stamp.ps1`
 - Create: `plugin/template-tests/stamp-test.ps1`
@@ -1014,7 +1020,11 @@ $stampJson = @"
   "templateDir": "expo/templates/app",
   "scaffoldCommit": "$baseCommit",
   "lastUpdateCommit": "$baseCommit",
-  "renames": { "AppTemplate": "MyApp", "app-template": "my-app", "apptemplate": "myapp" },
+  "renames": [
+    { "from": "AppTemplate", "to": "MyApp" },
+    { "from": "app-template", "to": "my-app" },
+    { "from": "apptemplate", "to": "myapp" }
+  ],
   "scaffoldedAt": "2026-06-11T00:00:00Z"
 }
 "@
@@ -1069,7 +1079,7 @@ $ErrorActionPreference = 'Stop'
 
 function Convert-TemplateText {
     param([string]$Text, $Renames)
-    foreach ($p in $Renames.PSObject.Properties) { $Text = $Text.Replace($p.Name, [string]$p.Value) }
+    foreach ($r in @($Renames)) { $Text = $Text.Replace([string]$r.from, [string]$r.to) }
     return $Text
 }
 
@@ -1226,7 +1236,7 @@ $ErrorActionPreference = 'Stop'
 
 function Convert-TemplateText {
     param([string]$Text, $Renames)
-    foreach ($p in $Renames.PSObject.Properties) { $Text = $Text.Replace($p.Name, [string]$p.Value) }
+    foreach ($r in @($Renames)) { $Text = $Text.Replace([string]$r.from, [string]$r.to) }
     return $Text
 }
 

@@ -77,10 +77,17 @@ Three skills, one per template. Each one:
   "repoUrl": "https://github.com/ryan75195/dotnet-agent-harness",
   "scaffoldCommit": "<sha of harness repo main at scaffold time>",
   "lastUpdateCommit": "<sha, initially = scaffoldCommit>",
-  "renames": { "AppTemplate": "MyApp", "app-template": "my-app" },
+  "renames": [
+    { "from": "AppTemplate", "to": "MyApp" },
+    { "from": "app-template", "to": "my-app" }
+  ],
   "scaffoldedAt": "2026-06-11T00:00:00Z"
 }
 ```
+
+(`renames` is an ordered array of pairs rather than an object: PowerShell 5.1
+dictionaries are case-insensitive and its `ConvertFrom-Json` rejects keys
+differing only by case, e.g. `AppTemplate` vs `apptemplate`.)
 
 `renames` records the token substitutions the scaffold performed (from
 `.template.config` sourceName for .NET; from `new-app.ps1`'s replacement
