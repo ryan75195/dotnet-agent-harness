@@ -59,6 +59,37 @@ What you get:
 - **RevenueCat baked in:** `src/lib/purchases/` wraps configuration and a
   `useSubscription` hook; a paywall screen renders the current offering.
 
+## Claude Code plugin
+
+The repo doubles as a Claude Code plugin marketplace. The `agent-harness`
+plugin (in [`plugin/`](plugin/)) ships:
+
+- **Scaffolding skills** — `new-dotnet-cli`, `new-dotnet-etl-api`,
+  `new-expo-app` — which scaffold from the templates above, stamp the
+  project with `.harness.json` provenance, and verify the guardrails pass.
+- **`harness-update`** — pulls the latest template changes into a
+  previously-scaffolded project: PowerShell scripts classify each changed
+  harness-owned file (clean → copied, customized → flagged), the agent
+  merges the flagged ones, and the project's own gate must pass before
+  the stamp bumps.
+- **Feedback capture** — the templates' git hooks log every pre-commit
+  gate failure (which gate, output tail, staged diff) to
+  `~/.agent-harness/feedback/`, link the eventual fix commit, and the
+  plugin prompts the agent to annotate each event. The `harness-report`
+  skill later clusters those events into digest issues on this repo —
+  raw material for turning recurring mistakes into new guardrails.
+
+Install:
+
+```text
+/plugin marketplace add ryan75195/dotnet-agent-harness
+/plugin install agent-harness@agent-harness
+```
+
+Local development: `claude --plugin-dir .\plugin`. A local checkout can be
+pinned for offline scaffolds/updates in `~/.agent-harness/config.json`:
+`{ "repoPath": "C:/path/to/dotnet-agent-harness" }`.
+
 ## CI
 
 `.github/workflows/template-ci.yml` scaffolds, builds, and validates every
