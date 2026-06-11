@@ -21,6 +21,10 @@ Set-Content (Join-Path $work 'feedback/events.jsonl') '{"id":"ab12cd","gate":"li
 & (Join-Path $pluginRoot 'scripts/harness-note.ps1') -EventId ab12cd -Note 'adding the paywall screen'
 $store = Get-Content (Join-Path $work 'feedback/events.jsonl') -Raw
 Assert ($store -match '"note":\s*"adding the paywall screen"') 'note patch line appended'
+
+& (Join-Path $pluginRoot 'scripts/mark-reported.ps1') -EventId ab12cd -IssueUrl 'https://github.com/ryan75195/dotnet-agent-harness/issues/99'
+$store = Get-Content (Join-Path $work 'feedback/events.jsonl') -Raw
+Assert ($store -match '"reportedIssue":\s*"https://github.com/ryan75195/dotnet-agent-harness/issues/99"') 'reportedIssue patch line appended'
 Remove-Item Env:AGENT_HARNESS_FEEDBACK_DIR
 
 Write-Host 'Annotate tests passed.'
