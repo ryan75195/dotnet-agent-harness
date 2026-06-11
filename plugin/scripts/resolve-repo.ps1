@@ -10,7 +10,7 @@ if (Test-Path $ConfigPath) {
     $cfg = Get-Content $ConfigPath -Raw | ConvertFrom-Json
     if ($cfg.repoPath) {
         if (Test-Path (Join-Path $cfg.repoPath '.git')) {
-            git -C $cfg.repoPath fetch --quiet origin main
+            try { git -C $cfg.repoPath fetch --quiet origin main 2>$null } catch { }
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning 'fetch failed (offline or no origin) - using checkout as-is'
                 $global:LASTEXITCODE = 0
@@ -26,7 +26,7 @@ if ($NoClone) { throw "No usable local checkout configured at $ConfigPath and cl
 
 $clonePath = Join-Path $env:TEMP 'agent-harness-repo'
 if (Test-Path (Join-Path $clonePath '.git')) {
-    git -C $clonePath fetch --quiet origin main
+    try { git -C $clonePath fetch --quiet origin main 2>$null } catch { }
     if ($LASTEXITCODE -eq 0) {
         git -C $clonePath merge --ff-only --quiet origin/main | Out-Null
     }
