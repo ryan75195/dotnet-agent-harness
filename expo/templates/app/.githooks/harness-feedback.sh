@@ -31,7 +31,7 @@ harness_log_failure() {
     tail_text=$(printf '%s' "$output" | tail -n 50)
     escaped=$(harness_json_escape "$tail_text")
     project=$(harness_json_escape "$root")
-    printf '{"id":"%s","ts":"%s","project":"%s","template":"%s","gate":"%s","branch":"%s","outputTail":"%s","note":null,"fixCommit":null}\n' \
+    printf '{"id":"%s","kind":"gate-failure","ts":"%s","project":"%s","template":"%s","gate":"%s","branch":"%s","outputTail":"%s","note":null,"fixCommit":null}\n' \
       "$id" "$ts" "$project" "$template" "$gate" "$branch" "$escaped" \
       >> "$HARNESS_FEEDBACK_DIR/events.jsonl" 2>/dev/null || exit 0
     git diff --cached > "$HARNESS_FEEDBACK_DIR/diffs/$id.failure.patch" 2>/dev/null
