@@ -28,7 +28,7 @@ foreach ($dir in $skillDirs) {
     if ($text -notmatch ('(?s)^---.*?name:\s*' + [regex]::Escape($dir.Name) + '\b.*?---')) {
         throw "$($dir.Name)/SKILL.md frontmatter must declare 'name: $($dir.Name)'"
     }
-    if ($text -notmatch 'description:\s*\S') { throw "$($dir.Name)/SKILL.md frontmatter missing a description" }
+    if ($text -notmatch '(?s)^---.*?description:\s*\S.*?---') { throw "$($dir.Name)/SKILL.md frontmatter missing a description" }
 }
 
 if ($RequireFull) {
