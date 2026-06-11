@@ -16,6 +16,12 @@ if [ -x "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" ]; then
   "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" || exit $?
 fi
 
+if [ -f "$REPO_ROOT/.githooks/harness-feedback.sh" ]; then
+  . "$REPO_ROOT/.githooks/harness-feedback.sh"
+else
+  harness_log_failure() { :; }
+fi
+
 SLN=$(ls "$REPO_ROOT"/*.sln 2>/dev/null | head -1)
 
 # No .sln? Find all .csproj files instead
@@ -61,6 +67,7 @@ if [ $BUILD_EXIT -ne 0 ]; then
   fi
 
   echo "Fix all errors before committing."
+  harness_log_failure build "$BUILD_OUTPUT"
   exit 1
 fi
 echo "Build: ok"
@@ -79,6 +86,7 @@ FORMAT_OUTPUT=$(dotnet format "$BUILD_TARGET" --verify-no-changes --verbosity qu
 if [ $? -ne 0 ]; then
   echo "LINT FAILED. Run 'dotnet format' to fix:"
   echo "$FORMAT_OUTPUT" | head -20
+  harness_log_failure lint "$FORMAT_OUTPUT"
   exit 1
 fi
 echo "Lint: clean"
@@ -93,6 +101,7 @@ if [ -z "$TEST_PROJECTS" ]; then
 fi
 
 TESTS_FAILED=0
+FAILED_TEST_OUTPUT=""
 TOTAL_PASSED=0
 while IFS= read -r proj; do
   PROJ_NAME=$(basename "$proj" .csproj)
@@ -102,6 +111,9 @@ while IFS= read -r proj; do
     echo "$TEST_OUTPUT" | grep -E "(Failed|Error|Assert)" | head -20
     echo ""
     TESTS_FAILED=1
+    FAILED_TEST_OUTPUT="$FAILED_TEST_OUTPUT$PROJ_NAME:
+$TEST_OUTPUT
+"
   else
     PASSED=$(echo "$TEST_OUTPUT" | sed -n 's/.*Passed:[[:space:]]*\([0-9]*\).*/\1/p' | tail -1)
     TOTAL_PASSED=$((TOTAL_PASSED + ${PASSED:-0}))
@@ -110,6 +122,7 @@ done <<< "$TEST_PROJECTS"
 
 if [ "$TESTS_FAILED" -eq 1 ]; then
   echo "TESTS FAILED. Fix failing tests before committing."
+  harness_log_failure tests "$FAILED_TEST_OUTPUT"
   exit 1
 fi
 echo "Tests: $TOTAL_PASSED passed"
