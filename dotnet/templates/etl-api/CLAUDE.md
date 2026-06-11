@@ -8,7 +8,7 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 
 1. **Open an issue.** `gh issue create --title "..."`. No issue, no branch.
 2. **Create a feat branch.** `git checkout -b feat/<N>-<kebab-slug>` where `<N>` is the issue number. `.githooks/reference-transaction` rejects the branch on creation if the name doesn't match or if issue #N doesn't exist on GitHub.
-3. **Edit + test.** Normal development. Analyzers run on every build.
+3. **Edit + test.** Run *targeted* tests while iterating (`dotnet test <project>`) for fast feedback. Don't run the full build/test gate just to commit — the pre-commit hook (step 4) runs it and blocks on failure, so committing *is* running the tests, and a blocked commit is also what feeds harness feedback capture. Analyzers run on every build.
 4. **Commit.** `git commit`. `.githooks/pre-commit` runs:
    - Branch guard (no commits to `main`/`master`)
    - Merged-branch check (`.claude/hooks/block-merged-branch.sh`)

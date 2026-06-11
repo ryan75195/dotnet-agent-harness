@@ -11,7 +11,12 @@ enforce each transition.
 2. **Create a feat branch.** `git checkout -b feat/<N>-<kebab-slug>` where
    `<N>` is the issue number. `.githooks/reference-transaction` rejects the
    branch if the name doesn't match or issue #N doesn't exist.
-3. **Edit + test.** `npm run verify` runs the full guardrail set locally.
+3. **Edit + test.** Run *targeted* tests while iterating (`npx jest <file>`)
+   for fast feedback. Don't run the full gate (`npm run verify`) just to
+   commit — the pre-commit hook runs it and blocks on failure, so committing
+   *is* running the tests, and a blocked commit is also what feeds harness
+   feedback capture. Keep `npm run verify` for when you deliberately want the
+   whole suite (e.g. before opening the PR).
 4. **Commit.** `.githooks/pre-commit` runs: branch guard, merged-branch
    check, `tsc --noEmit`, `eslint . --max-warnings 0`, dependency-cruiser,
    check-test-files, `jest --coverage`. Any failure blocks the commit.
