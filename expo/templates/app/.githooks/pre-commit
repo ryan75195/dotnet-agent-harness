@@ -13,22 +13,41 @@ if [ -x "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" ]; then
   "$REPO_ROOT/.claude/hooks/block-merged-branch.sh" || exit $?
 fi
 
+if [ -f "$REPO_ROOT/.githooks/harness-feedback.sh" ]; then
+  . "$REPO_ROOT/.githooks/harness-feedback.sh"
+else
+  harness_log_failure() { :; }
+fi
+
+run_gate() {
+  local gate_name
+  gate_name="$1"; shift
+  GATE_OUTPUT=$("$@" 2>&1)
+  GATE_EXIT=$?
+  printf '%s\n' "$GATE_OUTPUT"
+  if [ $GATE_EXIT -ne 0 ]; then
+    harness_log_failure "$gate_name" "$GATE_OUTPUT"
+    return 1
+  fi
+  return 0
+}
+
 echo "=== Pre-Commit Checks ==="
 
 echo "--- Typecheck ---"
-npx tsc --noEmit || { echo "TYPECHECK FAILED. Fix all type errors before committing."; exit 1; }
+run_gate typecheck npx tsc --noEmit || { echo "TYPECHECK FAILED. Fix all type errors before committing."; exit 1; }
 
 echo "--- Lint ---"
-npx eslint . --max-warnings 0 || { echo "LINT FAILED. local/no-comments and friends fire at error severity."; exit 1; }
+run_gate lint npx eslint . --max-warnings 0 || { echo "LINT FAILED. local/no-comments and friends fire at error severity."; exit 1; }
 
 echo "--- Dependency rules ---"
-npx depcruise src --config .dependency-cruiser.cjs || { echo "DEPENDENCY RULES FAILED. See .dependency-cruiser.cjs."; exit 1; }
+run_gate depcruise npx depcruise src --config .dependency-cruiser.cjs || { echo "DEPENDENCY RULES FAILED. See .dependency-cruiser.cjs."; exit 1; }
 
 echo "--- Test files ---"
-node scripts/check-test-files.js || exit 1
+run_gate test-files node scripts/check-test-files.js || exit 1
 
 echo "--- Tests + coverage ---"
-npx jest --coverage --silent || { echo "TESTS FAILED (or coverage below threshold)."; exit 1; }
+run_gate tests npx jest --coverage --silent || { echo "TESTS FAILED (or coverage below threshold)."; exit 1; }
 
 echo "=== All checks passed ==="
 exit 0

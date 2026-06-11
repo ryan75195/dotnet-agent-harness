@@ -85,6 +85,42 @@ try {
     if ($deleteDoctorOut -notmatch 'EXPO_PUBLIC_ACCOUNT_DELETE_URL required when auth is enabled') {
         throw 'submission-doctor did not flag the missing account-deletion endpoint'
     }
+
+    Write-Host "Feedback capture: blocked commit must log an event..."
+    $feedbackDir = Join-Path $env:TEMP 'agent-harness-feedback-test'
+    if (Test-Path $feedbackDir) { Remove-Item -Recurse -Force $feedbackDir }
+    $env:AGENT_HARNESS_FEEDBACK_DIR = ($feedbackDir -replace '\\', '/')
+    git init -q -b main
+    git config user.email smoke@test.local
+    git config user.name smoke
+    git checkout -q -b capture-test
+    git config core.hooksPath .githooks
+    Set-Content -Path '.harness.json' -Value '{ "template": "expo-app", "stack": "expo" }'
+    Set-Content -Path 'src\lib\seeded.ts' -Value "// seeded violation`nexport const seeded = 1;"
+    git add .
+    $savedEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $commitOut = git commit -m "capture probe" 2>&1 | Out-String
+    $ErrorActionPreference = $savedEAP
+    if ($LASTEXITCODE -eq 0) { throw 'commit unexpectedly succeeded with a seeded lint violation' }
+    if ($commitOut -notmatch 'HARNESS-FEEDBACK: event ([0-9a-f]+)') { throw "no HARNESS-FEEDBACK marker in commit output:`n$commitOut" }
+    $eventId = $Matches[1]
+    $events = Get-Content (Join-Path $feedbackDir 'events.jsonl') -Raw
+    if ($events -notmatch ('"id":"' + $eventId + '"')) { throw 'event id not found in events.jsonl' }
+    if ($events -notmatch '"gate":"lint"') { throw "event gate is not lint:`n$events" }
+    if (-not (Test-Path (Join-Path $feedbackDir "diffs/$eventId.failure.patch"))) { throw 'failure patch missing' }
+
+    Write-Host "Feedback capture: next passing commit must link the fix..."
+    git rm -q --cached src/lib/seeded.ts
+    Remove-Item 'src\lib\seeded.ts'
+    git commit -q -m "capture probe fixed"
+    if ($LASTEXITCODE -ne 0) { throw 'fix commit failed' }
+    $events = Get-Content (Join-Path $feedbackDir 'events.jsonl') -Raw
+    if ($events -notmatch ('"id":"' + $eventId + '","fixCommit":"[0-9a-f]{40}"')) { throw 'fixCommit patch line missing' }
+    if (-not (Test-Path (Join-Path $feedbackDir "diffs/$eventId.fix.patch"))) { throw 'fix patch missing' }
+    if (Test-Path '.git\harness-pending-event') { throw 'pending-event marker not cleaned up' }
+    Remove-Item Env:AGENT_HARNESS_FEEDBACK_DIR
+    Remove-Item -Recurse -Force $feedbackDir
 }
 finally {
     Pop-Location
