@@ -1,0 +1,12 @@
+{
+  "ownedPaths": [
+    ".githooks/**",
+    ".claude/**",
+    ".editorconfig",
+    "tests/.editorconfig",
+    "Directory.Build.props",
+    "src/ConsoleApp.Analyzers/**",
+    "CLAUDE.md",
+    "harness-manifest.json"
+  ]
+}

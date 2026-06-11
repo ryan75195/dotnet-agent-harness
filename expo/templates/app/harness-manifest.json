@@ -1,0 +1,14 @@
+{
+  "ownedPaths": [
+    ".githooks/**",
+    ".claude/**",
+    "eslint-rules/**",
+    "eslint.config.js",
+    ".dependency-cruiser.cjs",
+    "scripts/**",
+    "tsconfig.json",
+    ".github/workflows/ci.yml",
+    "CLAUDE.md",
+    "harness-manifest.json"
+  ]
+}
