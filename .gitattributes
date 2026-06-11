@@ -1,0 +1,4 @@
+# Shell scripts and git hooks run under Git Bash; CRLF endings break them
+# ($'\r' errors). Force LF regardless of core.autocrlf on the cloning machine.
+*.sh text eol=lf
+**/.githooks/* text eol=lf
