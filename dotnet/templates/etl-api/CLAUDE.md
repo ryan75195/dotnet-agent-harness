@@ -17,6 +17,10 @@ Every change follows this loop. None of these steps are optional — hooks enfor
    - `dotnet test` — Unit + Architecture projects (Integration not yet wired in)
 5. **Open PR.** `gh pr create --base main --head feat/<N>-<slug>`.
 6. **Squash merge.** `gh pr merge <N> --squash --delete-branch`.
+7. **Capture review feedback.** After the merge, invoke the
+   `agent-harness:harness-capture-review` skill for PR `<N>` to record any
+   human review comments for later rule synthesis (best-effort; never
+   blocks).
 
 **Direct edits and commits to `main` are blocked.** **Edits to an already-merged branch are blocked** (Claude Code and Codex `PreToolUse` hooks + pre-commit).
 
