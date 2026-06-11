@@ -55,5 +55,20 @@ New-Item -ItemType Directory $proj3 | Out-Null
 $stamp3 = Get-Content (Join-Path $proj3 '.harness.json') -Raw | ConvertFrom-Json
 Assert (@($stamp3.renames)[0].to -ceq 'com.example.plain') 'default bundle id'
 
+$cfg = Join-Path $work 'config.json'
+$escapedRepo = $repo -replace '\\', '\\'
+Set-Content $cfg ('{ "repoPath": "' + $escapedRepo + '" }')
+$resolved = & (Join-Path $pluginScripts 'resolve-repo.ps1') -ConfigPath $cfg | Select-Object -Last 1
+Assert ($resolved -eq $repo) "resolve-repo should return configured checkout, got '$resolved'"
+
+$cfgMissing = Join-Path $work 'config-missing.json'
+Set-Content $cfgMissing '{ "repoPath": "C:/does/not/exist" }'
+$failed = $false
+try {
+    & (Join-Path $pluginScripts 'resolve-repo.ps1') -ConfigPath $cfgMissing -NoClone | Out-Null
+}
+catch { $failed = $true }
+Assert $failed 'resolve-repo with bad config and -NoClone must throw'
+
 Write-Host 'Stamp tests passed.'
 Remove-Item -Recurse -Force $work
