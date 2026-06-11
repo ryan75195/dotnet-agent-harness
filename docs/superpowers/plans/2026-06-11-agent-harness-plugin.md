@@ -1687,6 +1687,152 @@ git commit -m "Add plugin CI job and README documentation"
 
 ---
 
+### Task 14: harness-report skill (batch promotion of feedback into digest issues)
+
+> Added during execution at the user's request. Capture events must not rot
+> invisibly in the JSONL store: a batch step clusters unreported events and
+> raises ONE digest issue per cluster against the harness repo. Deliberately
+> NOT done from the git hooks (noise, network-in-hook fragility, and privacy —
+> the harness repo is public, so raw diffs/output never leave the machine; the
+> user confirms each issue body before it is posted).
+
+**Files:**
+- Create: `plugin/scripts/mark-reported.ps1`
+- Create: `plugin/skills/harness-report/SKILL.md`
+- Modify: `plugin/template-tests/annotate-test.ps1` (mark-reported assertions)
+- Modify: `plugin/template-tests/validate-plugin.ps1` (-RequireFull additions)
+
+- [ ] **Step 1: Extend the test (failing first)**
+
+In `plugin/template-tests/annotate-test.ps1`, insert before the final `Write-Host 'Annotate tests passed.'` (the feedback store fixture and `$env:AGENT_HARNESS_FEEDBACK_DIR` are already set up just above; keep this insert BEFORE the `Remove-Item Env:AGENT_HARNESS_FEEDBACK_DIR` line so the env var is still active):
+
+```powershell
+& (Join-Path $pluginRoot 'scripts/mark-reported.ps1') -EventId ab12cd -IssueUrl 'https://github.com/ryan75195/dotnet-agent-harness/issues/99'
+$store = Get-Content (Join-Path $work 'feedback/events.jsonl') -Raw
+Assert ($store -match '"reportedIssue":\s*"https://github.com/ryan75195/dotnet-agent-harness/issues/99"') 'reportedIssue patch line appended'
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `./plugin/template-tests/annotate-test.ps1`
+Expected: FAIL — mark-reported.ps1 not found.
+
+- [ ] **Step 3: Write mark-reported.ps1**
+
+Create `plugin/scripts/mark-reported.ps1` (same store-resolution pattern as harness-note.ps1):
+
+```powershell
+param(
+    [Parameter(Mandatory = $true)][string]$EventId,
+    [Parameter(Mandatory = $true)][string]$IssueUrl
+)
+
+$ErrorActionPreference = 'Stop'
+
+$feedbackDir = if ($env:AGENT_HARNESS_FEEDBACK_DIR) { $env:AGENT_HARNESS_FEEDBACK_DIR } else { Join-Path $HOME '.agent-harness/feedback' }
+$store = Join-Path $feedbackDir 'events.jsonl'
+if (-not (Test-Path $store)) { throw "Feedback store not found: $store" }
+
+$line = [pscustomobject]@{ id = $EventId; reportedIssue = $IssueUrl } | ConvertTo-Json -Compress
+Add-Content -Path $store -Value $line
+Write-Output "Marked event $EventId as reported in $IssueUrl."
+```
+
+- [ ] **Step 4: Run to verify it passes**
+
+Run: `./plugin/template-tests/annotate-test.ps1`
+Expected: `Annotate tests passed.`
+
+- [ ] **Step 5: Create harness-report/SKILL.md**
+
+```markdown
+---
+name: harness-report
+description: Use when asked to report harness feedback, promote captured guardrail failures into issues, or check "anything worth turning into a rule?". Clusters unreported feedback events and raises digest issues on the agent-harness repo.
+---
+
+# Harness Report
+
+Promote captured feedback events into digest GitHub issues on the harness
+repo — one issue per recurring failure pattern, so each can become a new
+guardrail. Capture is local and automatic; reporting is batched, reviewed
+by the user, and explicit.
+
+## Flow
+
+### 1. Load the store
+
+Read `~/.agent-harness/feedback/events.jsonl` (or
+`$env:AGENT_HARNESS_FEEDBACK_DIR/events.jsonl`). The store is append-only:
+later lines with the same `id` are patches (note, fixCommit,
+reportedIssue). Fold to the latest state per id. Skip events that already
+have `reportedIssue`. If nothing is unreported, say so and stop.
+
+### 2. Cluster
+
+Group the unreported events by recurring mistake, not just by gate: same
+gate + same template + similar failure text/note usually means one
+candidate rule. Read the `diffs/<id>.failure.patch` / `.fix.patch`
+sidecars locally when the outputTail is not enough to characterize a
+cluster. Singletons are normally not worth reporting — mention them to
+the user and let them decide.
+
+### 3. Draft and confirm — never post without showing the user
+
+For each cluster, draft an issue body containing ONLY: occurrence count,
+gate, template(s), project directory NAMES (not full paths), event ids,
+the one-line notes, and a one-paragraph hypothesis of the rule that would
+have prevented it. NO raw diffs, NO output tails, NO code — the harness
+repo is public and events may come from private projects; diffs stay on
+disk, referenced by event id. Show the user every title+body and get
+approval before posting anything.
+
+### 4. Post and mark
+
+For each approved cluster:
+```powershell
+gh issue create --repo ryan75195/dotnet-agent-harness --title "<short pattern summary>" --body "<digest>"
+```
+Then mark every event in the cluster:
+```powershell
+& "${CLAUDE_PLUGIN_ROOT}/scripts/mark-reported.ps1" -EventId <id> -IssueUrl <url>
+```
+
+### 5. Summarize
+
+Report: issues raised (links), clusters skipped and why, events remaining
+unreported.
+```
+
+- [ ] **Step 6: Add harness-report to validate-plugin -RequireFull**
+
+In `plugin/template-tests/validate-plugin.ps1`, change the required list to:
+
+```powershell
+    $required = @('new-dotnet-cli', 'new-dotnet-etl-api', 'new-expo-app', 'harness-update', 'harness-report')
+```
+
+and the required-scripts list to include the new script:
+
+```powershell
+    foreach ($script in @('resolve-repo.ps1', 'write-stamp.ps1', 'harness-note.ps1', 'mark-reported.ps1', 'get-update.ps1', 'apply-update.ps1')) {
+```
+
+- [ ] **Step 7: Validate**
+
+Run: `./plugin/template-tests/validate-plugin.ps1` (no flag — passes whenever frontmatter is well-formed)
+Expected: `Plugin validation passed.`
+(The `-RequireFull` run only passes once Tasks 8–11 exist; Task 13 runs it in CI.)
+
+- [ ] **Step 8: Commit**
+
+```powershell
+git add plugin/scripts/mark-reported.ps1 plugin/skills/harness-report plugin/template-tests/annotate-test.ps1 plugin/template-tests/validate-plugin.ps1
+git commit -m "Add harness-report skill promoting feedback into digest issues"
+```
+
+---
+
 ## Post-implementation verification (manual, once)
 
 Not part of CI — worth one manual pass before calling the feature done:

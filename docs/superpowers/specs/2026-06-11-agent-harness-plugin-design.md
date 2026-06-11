@@ -21,6 +21,11 @@ A Claude Code plugin, living in this repo, that turns the templates from
 
 - **Synthesis**: no automated turning of captured feedback into new rules
   or template PRs. Events accumulate; a synthesis skill can be added later.
+  (Amended during execution: a `harness-report` skill WAS added as the first
+  step of this path — it clusters unreported events and raises user-approved
+  digest issues on the harness repo, one per recurring pattern. Reporting is
+  batched and explicit, never from the git hooks; raw diffs/output never
+  leave the machine because the harness repo is public.)
 - **Capture outside harness projects**: no plugin-level capture hooks for
   foreign codebases. Capture lives in the template git hooks only.
 - **Retrofit skill** for non-template projects.
