@@ -75,5 +75,17 @@ Assert ($claude.classification -eq 'modified') "CLAUDE.md should be modified, go
 Assert ($m.headCommit -match '^[0-9a-f]{40}$') 'headCommit recorded'
 Assert ($m.lastUpdateCommit -eq $baseCommit) 'lastUpdateCommit recorded'
 
+& (Join-Path $pluginScripts 'apply-update.ps1') -ManifestPath $manifestPath
+Assert ((Get-Content (Join-Path $proj '.githooks/pre-commit') -Raw) -match 'MyApp v2') 'clean file updated with rename applied'
+Assert (Test-Path (Join-Path $proj '.githooks/post-commit')) 'new file added'
+Assert ((Get-Content (Join-Path $proj '.githooks/post-commit') -Raw) -match 'MyApp post') 'new file renamed'
+$claudeContent = Get-Content (Join-Path $proj 'CLAUDE.md') -Raw
+Assert ($claudeContent -match 'project-specific notes') 'modified file left untouched'
+Assert ($claudeContent -notmatch 'docs v2') 'modified file not overwritten'
+Assert ((Get-Content (Join-Path $proj 'src/index.ts') -Raw) -match 'MyApp";') 'unowned src file untouched'
+
+& (Join-Path $pluginScripts 'apply-update.ps1') -ManifestPath $manifestPath
+Assert ((Get-Content (Join-Path $proj '.githooks/pre-commit') -Raw) -match 'MyApp v2') 'apply-update is idempotent'
+
 Write-Host 'Update-script tests passed.'
 Remove-Item -Recurse -Force $work
