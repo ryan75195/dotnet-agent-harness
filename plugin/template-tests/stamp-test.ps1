@@ -30,7 +30,9 @@ Assert ($stamp.stack -eq 'dotnet') 'stack field'
 Assert ($stamp.templateDir -eq 'dotnet/templates/cli') 'templateDir field'
 Assert ($stamp.scaffoldCommit -eq $sha) 'scaffoldCommit field'
 Assert ($stamp.lastUpdateCommit -eq $sha) 'lastUpdateCommit field'
-Assert ($stamp.renames.ConsoleApp -eq 'MyTool') 'dotnet sourceName rename'
+$r1 = @($stamp.renames)
+Assert ($r1.Count -eq 1) 'one dotnet rename'
+Assert ($r1[0].from -ceq 'ConsoleApp' -and $r1[0].to -ceq 'MyTool') 'dotnet sourceName rename'
 
 $proj2 = Join-Path $work 'proj2'
 New-Item -ItemType Directory $proj2 | Out-Null
@@ -38,16 +40,20 @@ New-Item -ItemType Directory $proj2 | Out-Null
 $stamp2 = Get-Content (Join-Path $proj2 '.harness.json') -Raw | ConvertFrom-Json
 Assert ($stamp2.stack -eq 'expo') 'expo stack'
 Assert ($stamp2.templateDir -eq 'expo/templates/app') 'expo templateDir'
-Assert ($stamp2.renames.'com.example.apptemplate' -eq 'com.example.myshinyapp') 'bundle id rename'
-Assert ($stamp2.renames.'AppTemplate' -eq 'MyShinyApp') 'name rename'
-Assert ($stamp2.renames.'app-template' -eq 'my-shiny-app') 'slug rename'
-Assert ($stamp2.renames.'apptemplate' -eq 'myshinyapp') 'lowercase rename'
+$r2 = @($stamp2.renames)
+Assert ($r2.Count -eq 4) 'four expo renames'
+Assert ($r2[0].from -ceq 'com.example.apptemplate' -and $r2[0].to -ceq 'com.example.myshinyapp') 'bundle id rename first'
+Assert ($r2[1].from -ceq 'AppTemplate' -and $r2[1].to -ceq 'MyShinyApp') 'name rename second'
+Assert ($r2[2].from -ceq 'app-template' -and $r2[2].to -ceq 'my-shiny-app') 'slug rename third'
+Assert ($r2[3].from -ceq 'apptemplate' -and $r2[3].to -ceq 'myshinyapp') 'lowercase rename fourth'
+$raw2 = Get-Content (Join-Path $proj2 '.harness.json') -Raw
+Assert ($raw2 -cmatch '"AppTemplate"') 'AppTemplate literal present in raw JSON'
 
 $proj3 = Join-Path $work 'proj3'
 New-Item -ItemType Directory $proj3 | Out-Null
 & (Join-Path $pluginScripts 'write-stamp.ps1') -ProjectDir $proj3 -Template expo-app -ProjectName Plain -RepoPath $repo
 $stamp3 = Get-Content (Join-Path $proj3 '.harness.json') -Raw | ConvertFrom-Json
-Assert ($stamp3.renames.'com.example.apptemplate' -eq 'com.example.plain') 'default bundle id'
+Assert (@($stamp3.renames)[0].to -ceq 'com.example.plain') 'default bundle id'
 
 Write-Host 'Stamp tests passed.'
 Remove-Item -Recurse -Force $work

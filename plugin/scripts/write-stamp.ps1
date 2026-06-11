@@ -21,19 +21,18 @@ if ($LASTEXITCODE -ne 0) { throw "Could not resolve HEAD of harness repo at $Rep
 if ($Template -eq 'expo-app') {
     if (-not $BundleId) { $BundleId = "com.example.$($ProjectName.ToLower())" }
     $slug = ($ProjectName -creplace '(?<=[a-z0-9])(?=[A-Z])', '-').ToLower()
-    # Build renames with Add() to avoid PS 5.1 case-insensitive duplicate-key parse error
-    # (AppTemplate vs apptemplate would be rejected in a hash literal)
-    $renames = [ordered]@{}
-    $renames['com.example.apptemplate'] = $BundleId
-    $renames['AppTemplate']             = $ProjectName
-    $renames['app-template']            = $slug
-    $renames['apptemplate']             = $ProjectName.ToLower()
+    $renames = @(
+        [ordered]@{ from = 'com.example.apptemplate'; to = $BundleId },
+        [ordered]@{ from = 'AppTemplate'; to = $ProjectName },
+        [ordered]@{ from = 'app-template'; to = $slug },
+        [ordered]@{ from = 'apptemplate'; to = $ProjectName.ToLower() }
+    )
     $stack = 'expo'
 }
 else {
     $templateJsonPath = Join-Path $RepoPath "$templateDir/.template.config/template.json"
     $sourceName = (Get-Content $templateJsonPath -Raw | ConvertFrom-Json).sourceName
-    $renames = [ordered]@{ $sourceName = $ProjectName }
+    $renames = @([ordered]@{ from = $sourceName; to = $ProjectName })
     $stack = 'dotnet'
 }
 
