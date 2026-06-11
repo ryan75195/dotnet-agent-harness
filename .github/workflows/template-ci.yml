@@ -65,3 +65,15 @@ jobs:
       - name: Update-script tests
         shell: pwsh
         run: ./plugin/template-tests/update-scripts-test.ps1
+
+      - name: Feedback-kind tests
+        shell: pwsh
+        run: ./plugin/template-tests/feedback-kind-test.ps1
+
+      - name: Fold-events tests
+        shell: pwsh
+        run: ./plugin/template-tests/fold-events-test.ps1
+
+      - name: Capture-review tests
+        shell: pwsh
+        run: ./plugin/template-tests/capture-review-test.ps1
