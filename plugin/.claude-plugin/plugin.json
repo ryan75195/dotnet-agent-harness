@@ -1,0 +1,6 @@
+{
+  "name": "agent-harness",
+  "description": "Scaffold, update, and capture feedback from agent-harness template projects",
+  "version": "0.1.0",
+  "author": { "name": "ryan75195" }
+}

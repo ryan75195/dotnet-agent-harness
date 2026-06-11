@@ -1,0 +1,11 @@
+{
+  "name": "agent-harness",
+  "owner": { "name": "ryan75195" },
+  "plugins": [
+    {
+      "name": "agent-harness",
+      "source": "./plugin",
+      "description": "Scaffold, update, and capture feedback from agent-harness template projects"
+    }
+  ]
+}
