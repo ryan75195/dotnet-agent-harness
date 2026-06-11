@@ -32,7 +32,7 @@ foreach ($dir in $skillDirs) {
 }
 
 if ($RequireFull) {
-    $required = @('new-dotnet-cli', 'new-dotnet-etl-api', 'new-expo-app', 'harness-update', 'harness-report')
+    $required = @('new-dotnet-cli', 'new-dotnet-etl-api', 'new-expo-app', 'harness-update', 'harness-report', 'harness-capture-review')
     foreach ($name in $required) {
         if (-not (Test-Path (Join-Path $skillsDir "$name/SKILL.md"))) { throw "Required skill missing: $name" }
     }
@@ -40,7 +40,7 @@ if ($RequireFull) {
     if (-not (Test-Path $hooksPath)) { throw "Missing $hooksPath" }
     $hooks = Get-Content $hooksPath -Raw | ConvertFrom-Json
     if (-not $hooks.hooks.PostToolUse) { throw 'hooks.json must register a PostToolUse hook' }
-    foreach ($script in @('resolve-repo.ps1', 'write-stamp.ps1', 'harness-note.ps1', 'mark-reported.ps1', 'get-update.ps1', 'apply-update.ps1')) {
+    foreach ($script in @('resolve-repo.ps1', 'write-stamp.ps1', 'harness-note.ps1', 'mark-reported.ps1', 'get-update.ps1', 'apply-update.ps1', 'fold-events.ps1', 'capture-review.ps1')) {
         if (-not (Test-Path (Join-Path $pluginRoot "scripts/$script"))) { throw "Required script missing: $script" }
     }
 }
