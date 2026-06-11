@@ -51,3 +51,21 @@ The toolchain enforces coverage (CI0002), assertion quality (CI0009), fixture ex
 - `.claude/settings.json` — Claude Code hook registration
 - `Directory.Build.props` — `TreatWarningsAsErrors`, analyzer project wire-up
 - `.editorconfig` + `tests/.editorconfig` — style + severity overrides
+
+## Harness maintenance
+
+This project was scaffolded from the agent-harness template repo.
+`.harness.json` records the template and commit it came from — never
+hand-edit or delete it.
+
+- **Updating the harness.** On any request like "update the harness",
+  "pull the latest template changes", or "update the guardrails", invoke
+  the `agent-harness:harness-update` skill (ships with the agent-harness
+  plugin). It updates only harness-owned files — hooks, lint rules,
+  analyzers, CI, this file — never your app code, and goes through the
+  normal issue → branch → PR lifecycle.
+- **Feedback events.** When a blocked commit prints
+  `HARNESS-FEEDBACK: event <id>`, append a one-line note describing what
+  the failing code was trying to do (the agent-harness plugin injects the
+  exact `harness-note.ps1` command), then fix the failure and commit
+  again as normal.
