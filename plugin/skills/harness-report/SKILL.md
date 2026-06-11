@@ -14,20 +14,38 @@ by the user, and explicit.
 
 ### 1. Load the store
 
-Read `~/.agent-harness/feedback/events.jsonl` (or
-`$env:AGENT_HARNESS_FEEDBACK_DIR/events.jsonl`). The store is append-only:
-later lines with the same `id` are patches (note, fixCommit,
-reportedIssue). Fold to the latest state per id. Skip events that already
-have `reportedIssue`. If nothing is unreported, say so and stop.
+Fold the append-only store to current-state-per-id with the helper (it
+defaults a missing `kind` to `gate-failure` for back-compat):
+```powershell
+& "${CLAUDE_PLUGIN_ROOT}/scripts/fold-events.ps1" | ConvertFrom-Json
+```
+Skip events that already have `reportedIssue`. If nothing is unreported,
+say so and stop.
 
-### 2. Cluster
+### 2. Cluster (within a kind, never across)
 
-Group the unreported events by recurring mistake, not just by gate: same
-gate + same template + similar failure text/note usually means one
-candidate rule. Read the `diffs/<id>.failure.patch` / `.fix.patch`
-sidecars locally when the outputTail is not enough to characterize a
-cluster. Singletons are normally not worth reporting — mention them to
-the user and let them decide.
+Group unreported events by recurring mistake, clustering **within a single
+`kind`** — never mix `gate-failure` and `review-comment` in one cluster.
+
+- `gate-failure`: same gate + template + similar failure text/note. Read
+  the `diffs/<id>.failure.patch` / `.fix.patch` sidecars when the
+  outputTail is not enough.
+- `review-comment`: same template + similar guidance across PRs/files. Read
+  the `diffs/<id>.hunk.patch` sidecar for the code the comment was on.
+  These are the highest-value clusters — a comment a human reviewer had to
+  leave is a rule the toolchain did not enforce.
+
+For each `review-comment` cluster, propose a **remedy type** from the
+comment bodies and file paths:
+- layering/structure ("imports a sibling", "belongs in lib/service",
+  dependency direction) → an arch-test fixture (.NET
+  `tests/*.Architecture`) or a dependency-cruiser rule (expo);
+- naming/style ("no any", "name by intent", formatting) → an analyzer
+  (CI####) or an ESLint rule;
+- otherwise → CLAUDE.md guidance.
+
+Singletons are normally not worth reporting — mention them and let the user
+decide.
 
 ### 3. Draft and confirm — never post without showing the user
 
@@ -36,8 +54,11 @@ gate, template(s), project directory NAMES (not full paths), event ids,
 the one-line notes, and a one-paragraph hypothesis of the rule that would
 have prevented it. NO raw diffs, NO output tails, NO code — the harness
 repo is public and events may come from private projects; diffs stay on
-disk, referenced by event id. Show the user every title+body and get
-approval before posting anything.
+disk, referenced by event id. For `review-comment` clusters, also include
+the proposed remedy type and the reviewer guidance summarized in your own
+words — never paste raw diff hunks (sidecars stay local; the harness repo
+is public). Show the user every title+body and get approval before posting
+anything.
 
 ### 4. Post and mark
 
