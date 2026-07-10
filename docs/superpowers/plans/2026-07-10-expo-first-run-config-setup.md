@@ -61,8 +61,6 @@ function goodInputs(overrides) {
   };
 }
 
-global.goodInputs = goodInputs;
-
 describe('evaluateConfig', () => {
   test('fully configured project does not nudge', () => {
     const result = evaluateConfig(goodInputs());
@@ -240,7 +238,7 @@ git commit -m "Add config-doctor evaluateConfig core for Expo first-run setup"
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `expo/templates/app/scripts/__tests__/config-doctor.test.js` (the `goodInputs` helper from Task 1 is in scope via `global.goodInputs`):
+Append to `expo/templates/app/scripts/__tests__/config-doctor.test.js` (the top-level `goodInputs` helper and the `evaluateConfig` import from Task 1 are already in scope in this same file):
 
 ```js
 const { formatReport } = require('../config-doctor');
@@ -251,7 +249,7 @@ describe('formatReport', () => {
   });
 
   test('nudge names the skill and the action and marks failures', () => {
-    const result = evaluateConfig(global.goodInputs({ easWhoami: { status: 'logged-out', user: null } }));
+    const result = evaluateConfig(goodInputs({ easWhoami: { status: 'logged-out', user: null } }));
     const report = formatReport(result);
     expect(report).toContain('first-run-setup');
     expect(report).toContain('ACTION:');
@@ -259,7 +257,7 @@ describe('formatReport', () => {
   });
 
   test('lists only optional features still awaiting a decision', () => {
-    const result = evaluateConfig(global.goodInputs({
+    const result = evaluateConfig(goodInputs({
       env: {},
       setupState: { version: 1, iosCredentials: 'provisioned', features: { payments: 'deferred' } }
     }));
