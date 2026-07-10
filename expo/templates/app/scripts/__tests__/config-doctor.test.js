@@ -1,4 +1,4 @@
-const { evaluateConfig } = require('../config-doctor');
+const { evaluateConfig, formatReport } = require('../config-doctor');
 
 function goodInputs(overrides) {
   return {
@@ -78,5 +78,29 @@ describe('evaluateConfig', () => {
     expect(payments.configured).toBe(true);
     expect(payments.needsDecision).toBe(false);
     expect(result.shouldNudge).toBe(false);
+  });
+});
+
+describe('formatReport', () => {
+  test('silent when nothing to nudge', () => {
+    expect(formatReport({ shouldNudge: false, critical: [], optional: [] })).toBe('');
+  });
+
+  test('nudge names the skill and the action and marks failures', () => {
+    const result = evaluateConfig(goodInputs({ easWhoami: { status: 'logged-out', user: null } }));
+    const report = formatReport(result);
+    expect(report).toContain('first-run-setup');
+    expect(report).toContain('ACTION:');
+    expect(report).toContain('✗ EAS login');
+  });
+
+  test('lists only optional features still awaiting a decision', () => {
+    const result = evaluateConfig(goodInputs({
+      env: {},
+      setupState: { version: 1, iosCredentials: 'provisioned', features: { payments: 'deferred' } }
+    }));
+    const report = formatReport(result);
+    expect(report).toContain('Auth (Auth0)');
+    expect(report).not.toContain('Payments (RevenueCat)');
   });
 });

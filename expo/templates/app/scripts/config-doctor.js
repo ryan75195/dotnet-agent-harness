@@ -72,4 +72,33 @@ function evaluateConfig(inputs) {
   return { critical, optional, allCriticalPass, allOptionalDecided, shouldNudge: !allCriticalPass || !allOptionalDecided };
 }
 
-module.exports = { evaluateConfig, OPTIONAL_FEATURES };
+function formatCriticalLine(result) {
+  const mark = result.ok ? '✓' : '✗';
+  return `  ${mark} ${result.label} — ${result.detail}`;
+}
+
+function formatOptionalLine(option) {
+  return `  • ${option.label} — awaiting a decision (enable or skip)`;
+}
+
+function formatReport(result) {
+  if (!result.shouldNudge) {
+    return '';
+  }
+  const lines = ['[first-run-setup] This project is not fully ready to build & deploy yet.', ''];
+  lines.push('Critical (build & deploy):');
+  for (const r of result.critical) {
+    lines.push(formatCriticalLine(r));
+  }
+  const undecided = result.optional.filter((o) => o.needsDecision);
+  if (undecided.length > 0) {
+    lines.push('', 'Optional features awaiting a decision:');
+    for (const o of undecided) {
+      lines.push(formatOptionalLine(o));
+    }
+  }
+  lines.push('', 'ACTION: Run the first-run-setup skill now to resolve the critical items and decide the optional ones. Do this before attempting any EAS build.');
+  return lines.join('\n');
+}
+
+module.exports = { evaluateConfig, formatReport, OPTIONAL_FEATURES };
