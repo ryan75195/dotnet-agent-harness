@@ -133,11 +133,12 @@ function loadAppConfig(cwd) {
   if (!fs.existsSync(configPath)) {
     return { projectId: null, bundleId: null };
   }
-  const resolved = require.resolve(configPath);
   const previousEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = 'development';
-  delete require.cache[resolved];
+  let resolved;
   try {
+    resolved = require.resolve(configPath);
+    delete require.cache[resolved];
     const mod = require(resolved);
     const expo = (mod && mod.expo) || {};
     const projectId = (((expo.extra || {}).eas) || {}).projectId || null;
@@ -148,7 +149,9 @@ function loadAppConfig(cwd) {
     return { projectId: null, bundleId: null };
   } finally {
     process.env.NODE_ENV = previousEnv;
-    delete require.cache[resolved];
+    if (resolved) {
+      delete require.cache[resolved];
+    }
   }
 }
 

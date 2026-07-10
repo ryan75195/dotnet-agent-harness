@@ -168,4 +168,30 @@ describe('collectInputs / main', () => {
     expect(report).toContain('EAS project linked');
     expect(report).toContain('ACTION:');
   });
+
+  test('malformed eas.json and setup-state degrade without throwing', () => {
+    const dir = writeFixture({
+      'package.json': JSON.stringify({ version: '1.0.0' }),
+      'app.config.js': APP_CONFIG,
+      'eas.json': '{ not valid json',
+      '.claude/.setup-state.json': '{ also broken'
+    });
+    let inputs;
+    expect(() => { inputs = collectInputs({ cwd: dir, env: {}, runEas: loggedIn }); }).not.toThrow();
+    expect(inputs.hasProductionBuildProfile).toBe(false);
+    expect(inputs.hasProductionSubmitProfile).toBe(false);
+    expect(inputs.setupState).toBe(null);
+  });
+
+  test('app.config.js that throws on require degrades to null ids without throwing', () => {
+    const dir = writeFixture({
+      'package.json': JSON.stringify({ version: '1.0.0' }),
+      'app.config.js': `throw new Error('boom');`,
+      'eas.json': EAS_JSON
+    });
+    let inputs;
+    expect(() => { inputs = collectInputs({ cwd: dir, env: {}, runEas: loggedIn }); }).not.toThrow();
+    expect(inputs.projectId).toBe(null);
+    expect(inputs.bundleId).toBe(null);
+  });
 });
