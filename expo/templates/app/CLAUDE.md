@@ -136,3 +136,14 @@ hand-edit or delete it.
   the failing code was trying to do (the agent-harness plugin injects the
   exact `harness-note.ps1` command), then fix the failure and commit
   again as normal.
+
+## First-run config
+
+A `SessionStart` hook runs `scripts/config-doctor.js` each session. When it
+reports missing build/deploy-critical config (EAS login, `extra.eas.projectId`,
+production bundle id, iOS credentials) or an undecided optional feature, run the
+`first-run-setup` skill. It interviews the user, drives `eas login`/`eas init`/
+`eas credentials`, writes `EXPO_PUBLIC_*` keys to `.env.local` and
+`.env.production`, and records decisions in `.claude/.setup-state.json`
+(gitignored). `app.config.js` edits it makes follow the normal issue→branch→PR
+lifecycle above. This is separate from `submission-doctor` (store metadata).
