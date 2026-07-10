@@ -194,4 +194,16 @@ describe('collectInputs / main', () => {
     expect(inputs.projectId).toBe(null);
     expect(inputs.bundleId).toBe(null);
   });
+
+  test('unreadable .env (a directory) degrades without throwing', () => {
+    const dir = writeFixture({
+      'package.json': JSON.stringify({ version: '1.0.0' }),
+      'app.config.js': APP_CONFIG,
+      'eas.json': EAS_JSON
+    });
+    fs.mkdirSync(path.join(dir, '.env.production'));
+    let inputs;
+    expect(() => { inputs = collectInputs({ cwd: dir, env: {}, runEas: loggedIn }); }).not.toThrow();
+    expect(inputs.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY).toBeUndefined();
+  });
 });

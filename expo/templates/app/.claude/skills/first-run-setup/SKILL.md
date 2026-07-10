@@ -21,8 +21,11 @@ it flags. Re-run it at the end - success is when it prints nothing.
    `! eas login`, then re-run `eas whoami` to confirm.
 2. **EAS project link.** If `app.config.js` has no `extra.eas.projectId`, run
    `eas init` (or ask the user to run `! eas init` if it needs interactive
-   auth). Commit the `app.config.js` change through the CLAUDE.md dev
-   lifecycle (issue -> feat branch -> PR), never directly on main.
+   auth). Because this template uses a dynamic `app.config.js`, `eas init`
+   may print the project id rather than writing it - if so, set
+   `extra.eas.projectId` in `app.config.js` by hand to the id it prints.
+   Commit the `app.config.js` change through the CLAUDE.md dev lifecycle
+   (issue -> feat branch -> PR), never directly on main.
 3. **Production bundle identifier.** If the bundle id still contains
    `com.example.`, ask the user for their real reverse-DNS id (e.g.
    `com.acme.myapp`) and set it in `app.config.js`. Both the production and

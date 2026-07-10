@@ -109,8 +109,14 @@ function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
     return {};
   }
+  let contents;
+  try {
+    contents = fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    return {};
+  }
   const out = {};
-  for (const rawLine of fs.readFileSync(filePath, 'utf8').split('\n')) {
+  for (const rawLine of contents.split('\n')) {
     const line = rawLine.trim();
     if (!line || line.startsWith('#')) {
       continue;
@@ -148,7 +154,11 @@ function loadAppConfig(cwd) {
   } catch (error) {
     return { projectId: null, bundleId: null };
   } finally {
-    process.env.NODE_ENV = previousEnv;
+    if (previousEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousEnv;
+    }
     if (resolved) {
       delete require.cache[resolved];
     }
