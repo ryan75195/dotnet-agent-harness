@@ -104,3 +104,68 @@ describe('formatReport', () => {
     expect(report).not.toContain('Payments (RevenueCat)');
   });
 });
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { collectInputs, main } = require('../config-doctor');
+
+function writeFixture(files) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'config-doctor-'));
+  for (const [name, contents] of Object.entries(files)) {
+    const full = path.join(dir, name);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, contents);
+  }
+  return dir;
+}
+
+const APP_CONFIG = `require('./package.json');
+const isProduction = process.env.NODE_ENV === 'production';
+const bundleId = isProduction ? 'com.acme.myapp' : 'com.acme.myapp.dev';
+module.exports = { expo: { ios: { bundleIdentifier: bundleId }, extra: { eas: { projectId: 'proj-xyz' } } } };
+`;
+
+const EAS_JSON = JSON.stringify({ build: { production: {} }, submit: { production: {} } });
+const loggedIn = () => ({ status: 'logged-in', user: 'ryan' });
+
+describe('collectInputs / main', () => {
+  test('collectInputs reads app.config, eas.json, env and state', () => {
+    const dir = writeFixture({
+      'package.json': JSON.stringify({ version: '1.0.0' }),
+      'app.config.js': APP_CONFIG,
+      'eas.json': EAS_JSON,
+      '.env.production': 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=rc-key\n',
+      '.claude/.setup-state.json': JSON.stringify({ version: 1, iosCredentials: 'provisioned', features: { auth: 'deferred', api: 'deferred' } })
+    });
+    const inputs = collectInputs({ cwd: dir, env: {}, runEas: loggedIn });
+    expect(inputs.projectId).toBe('proj-xyz');
+    expect(inputs.bundleId).toBe('com.acme.myapp');
+    expect(inputs.hasProductionBuildProfile).toBe(true);
+    expect(inputs.hasProductionSubmitProfile).toBe(true);
+    expect(inputs.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY).toBe('rc-key');
+    expect(inputs.setupState.iosCredentials).toBe('provisioned');
+  });
+
+  test('main returns empty string for a fully configured project', () => {
+    const dir = writeFixture({
+      'package.json': JSON.stringify({ version: '1.0.0' }),
+      'app.config.js': APP_CONFIG,
+      'eas.json': EAS_JSON,
+      '.env.production': 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=rc\nEXPO_PUBLIC_AUTH0_DOMAIN=d\nEXPO_PUBLIC_AUTH0_CLIENT_ID=c\nEXPO_PUBLIC_API_BASE_URL=https://api\n',
+      '.claude/.setup-state.json': JSON.stringify({ version: 1, iosCredentials: 'provisioned', features: {} })
+    });
+    expect(main({ cwd: dir, env: {}, runEas: loggedIn })).toBe('');
+  });
+
+  test('main nudges when projectId is missing', () => {
+    const dir = writeFixture({
+      'package.json': JSON.stringify({ version: '1.0.0' }),
+      'app.config.js': `module.exports = { expo: { ios: { bundleIdentifier: 'com.acme.myapp' }, extra: {} } };`,
+      'eas.json': EAS_JSON
+    });
+    const report = main({ cwd: dir, env: {}, runEas: loggedIn });
+    expect(report).toContain('EAS project linked');
+    expect(report).toContain('ACTION:');
+  });
+});

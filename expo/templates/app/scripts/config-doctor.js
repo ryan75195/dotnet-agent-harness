@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
 const OPTIONAL_FEATURES = [
   { key: 'payments', label: 'Payments (RevenueCat)', requiredEnv: ['EXPO_PUBLIC_REVENUECAT_IOS_API_KEY'] },
   { key: 'auth', label: 'Auth (Auth0)', requiredEnv: ['EXPO_PUBLIC_AUTH0_DOMAIN', 'EXPO_PUBLIC_AUTH0_CLIENT_ID'] },
@@ -101,4 +105,132 @@ function formatReport(result) {
   return lines.join('\n');
 }
 
-module.exports = { evaluateConfig, formatReport, OPTIONAL_FEATURES };
+function parseEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+  const out = {};
+  for (const rawLine of fs.readFileSync(filePath, 'utf8').split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+    const eq = line.indexOf('=');
+    if (eq === -1) {
+      continue;
+    }
+    const key = line.slice(0, eq).trim();
+    const value = line.slice(eq + 1).trim();
+    if (key && value) {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function loadAppConfig(cwd) {
+  const configPath = path.join(cwd, 'app.config.js');
+  if (!fs.existsSync(configPath)) {
+    return { projectId: null, bundleId: null };
+  }
+  const resolved = require.resolve(configPath);
+  const previousEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'development';
+  delete require.cache[resolved];
+  try {
+    const mod = require(resolved);
+    const expo = (mod && mod.expo) || {};
+    const projectId = (((expo.extra || {}).eas) || {}).projectId || null;
+    const rawBundle = ((expo.ios || {}).bundleIdentifier) || null;
+    const bundleId = rawBundle ? rawBundle.replace(/\.dev$/, '') : null;
+    return { projectId, bundleId };
+  } catch (error) {
+    return { projectId: null, bundleId: null };
+  } finally {
+    process.env.NODE_ENV = previousEnv;
+    delete require.cache[resolved];
+  }
+}
+
+function loadEasJson(cwd) {
+  const easPath = path.join(cwd, 'eas.json');
+  if (!fs.existsSync(easPath)) {
+    return { hasProductionBuildProfile: false, hasProductionSubmitProfile: false };
+  }
+  try {
+    const eas = JSON.parse(fs.readFileSync(easPath, 'utf8'));
+    return {
+      hasProductionBuildProfile: Boolean(eas.build && eas.build.production),
+      hasProductionSubmitProfile: Boolean(eas.submit && eas.submit.production)
+    };
+  } catch (error) {
+    return { hasProductionBuildProfile: false, hasProductionSubmitProfile: false };
+  }
+}
+
+function loadSetupState(cwd) {
+  const statePath = path.join(cwd, '.claude', '.setup-state.json');
+  if (!fs.existsSync(statePath)) {
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  } catch (error) {
+    return null;
+  }
+}
+
+function collectEnv(cwd, processEnv) {
+  const merged = { ...parseEnvFile(path.join(cwd, '.env.local')), ...parseEnvFile(path.join(cwd, '.env.production')) };
+  for (const feature of OPTIONAL_FEATURES) {
+    for (const name of feature.requiredEnv) {
+      if (processEnv && processEnv[name]) {
+        merged[name] = processEnv[name];
+      }
+    }
+  }
+  return merged;
+}
+
+function defaultEasWhoami() {
+  try {
+    const out = execSync('eas whoami', { timeout: 3000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const user = out.trim().split('\n').pop().trim();
+    return { status: 'logged-in', user: user || null };
+  } catch (error) {
+    if (error.code === 'ETIMEDOUT' || error.code === 'ENOENT' || error.signal) {
+      return { status: 'unknown', user: null };
+    }
+    return { status: 'logged-out', user: null };
+  }
+}
+
+function collectInputs(options) {
+  const cwd = (options && options.cwd) || process.cwd();
+  const processEnv = (options && options.env) || process.env;
+  const runEas = (options && options.runEas) || defaultEasWhoami;
+  const appConfig = loadAppConfig(cwd);
+  const easJson = loadEasJson(cwd);
+  return {
+    projectId: appConfig.projectId,
+    bundleId: appConfig.bundleId,
+    hasProductionBuildProfile: easJson.hasProductionBuildProfile,
+    hasProductionSubmitProfile: easJson.hasProductionSubmitProfile,
+    easWhoami: runEas(),
+    env: collectEnv(cwd, processEnv),
+    setupState: loadSetupState(cwd)
+  };
+}
+
+function main(options) {
+  return formatReport(evaluateConfig(collectInputs(options)));
+}
+
+module.exports = { evaluateConfig, formatReport, collectInputs, defaultEasWhoami, main, OPTIONAL_FEATURES };
+
+if (require.main === module) {
+  const report = main({});
+  if (report) {
+    process.stdout.write(report + '\n');
+  }
+}
