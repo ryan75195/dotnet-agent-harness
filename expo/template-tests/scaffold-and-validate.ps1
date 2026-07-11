@@ -53,6 +53,18 @@ try {
     node scripts/submission-doctor.js
     if ($LASTEXITCODE -eq 0) { throw 'submission-doctor unexpectedly passed on a fresh scaffold' }
 
+    Write-Host "config-doctor must nudge on a fresh scaffold and exit 0..."
+    $configDoctorOut = node scripts/config-doctor.js | Out-String
+    if ($LASTEXITCODE -ne 0) { throw "config-doctor exited non-zero ($LASTEXITCODE) on a fresh scaffold" }
+    if ($configDoctorOut -notmatch 'first-run-setup') { throw 'config-doctor did not emit a first-run-setup nudge on a fresh scaffold' }
+    if ($configDoctorOut -notmatch 'ACTION:') { throw 'config-doctor nudge missing the ACTION line' }
+
+    Write-Host "SessionStart hook + first-run-setup skill must ship in the scaffold..."
+    if (-not (Test-Path (Join-Path $scaffoldDir '.claude\hooks\session-config-check.sh'))) { throw 'session-config-check.sh missing from scaffold' }
+    if (-not (Test-Path (Join-Path $scaffoldDir '.claude\skills\first-run-setup\SKILL.md'))) { throw 'first-run-setup skill missing from scaffold' }
+    $settingsText = Get-Content (Join-Path $scaffoldDir '.claude\settings.json') -Raw
+    if ($settingsText -notmatch 'SessionStart') { throw 'settings.json missing SessionStart hook wiring' }
+
     Write-Host "Partial auth config must fail the production config load..."
     $env:NODE_ENV = 'production'
     $env:EXPO_PUBLIC_REVENUECAT_IOS_API_KEY = 'smoke-key'

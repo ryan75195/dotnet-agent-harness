@@ -35,6 +35,15 @@ Note: `react-native-purchases` is a native module — use a development build
 - `npm run verify` — all of the above
 - `.githooks/pre-commit` — runs the lot before every commit
 
+## First-run setup
+
+At the start of each Claude Code session a hook runs `scripts/config-doctor.js`.
+If the project is not yet build/deploy-ready (EAS not logged in, no EAS
+project linked, placeholder bundle id, iOS credentials not provisioned) or an
+optional feature (payments, auth, API URL) has no recorded decision, it prints
+a nudge and Claude runs the `first-run-setup` skill to interview you and fill
+the gaps. Once everything is set it stays silent.
+
 ## App Store submission
 
 Read `SUBMISSION.md` (the state machine), then ask Claude:
