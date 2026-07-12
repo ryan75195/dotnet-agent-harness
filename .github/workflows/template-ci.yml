@@ -45,6 +45,37 @@ jobs:
         shell: pwsh
         run: ./expo/template-tests/scaffold-and-validate.ps1
 
+  new-project-cli:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Configure git identity (scaffold setup commit + CLI pre-flight)
+        shell: pwsh
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "template-ci"
+
+      - name: Dispatcher library tests
+        shell: pwsh
+        run: ./new-project/tests/lib-tests.ps1
+
+      - name: Installer tests
+        shell: pwsh
+        run: ./new-project/tests/install-tests.ps1
+
+      - name: Dispatcher arg/exit-code tests
+        shell: pwsh
+        run: ./new-project/tests/dispatcher-args-tests.ps1
+
+      - name: End-to-end scaffold (dotnet-cli)
+        shell: pwsh
+        run: ./new-project/tests/e2e-dotnet-cli.ps1
+
   plugin-validate:
     runs-on: windows-latest
     steps:

@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
-    [string]$BinDir = (Join-Path $HOME '.agent-harness/bin'),
+    [string]$BinDir = (Join-Path (Join-Path $HOME '.agent-harness') 'bin'),
     [switch]$NoPath,
     [switch]$NoConfig,
-    [string]$ConfigPath = (Join-Path $HOME '.agent-harness/config.json')
+    [string]$ConfigPath = (Join-Path (Join-Path $HOME '.agent-harness') 'config.json')
 )
 $ErrorActionPreference = 'Stop'
 

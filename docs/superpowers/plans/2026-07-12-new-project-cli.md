@@ -220,7 +220,7 @@ function Resolve-NewProjectPlan {
     $handler = $Handlers | Where-Object { $_.Type -eq $Type } | Select-Object -First 1
     if (-not $handler) { throw "Unknown project type '$Type'. Known types: $((($Handlers | ForEach-Object { $_.Type })) -join ', ')." }
     if (-not $Name) { throw "Project name is required: new-project $Type <Name> [flags]" }
-    if ($Name -notmatch '^[A-Z][A-Za-z0-9]*$') { throw "Name '$Name' must be PascalCase (^[A-Z][A-Za-z0-9]*$)." }
+    if ($Name -cnotmatch '^[A-Z][A-Za-z0-9]*$') { throw "Name '$Name' must be PascalCase (^[A-Z][A-Za-z0-9]*$)." }
 
     $declared = @{}
     foreach ($a in @($handler.ExtraArgs)) { $declared[$a.Name] = $a }
