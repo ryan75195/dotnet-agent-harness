@@ -14,8 +14,14 @@ try {
         $tok = $argv[$i]
         if ($tok -match '^(-h|--help|-Help)$') { $help = $true; $i++ }
         elseif ($tok -eq '-DryRun') { $dryRun = $true; $i++ }
-        elseif ($tok -match '^-(Destination|Dest)$') { $flags['Destination'] = $argv[$i + 1]; $i += 2 }
-        elseif ($tok -eq '-BundleId') { $flags['BundleId'] = $argv[$i + 1]; $i += 2 }
+        elseif ($tok -match '^-(Destination|Dest)$') {
+            if ($i + 1 -ge $argv.Count) { throw "Flag $tok requires a value." }
+            $flags['Destination'] = $argv[$i + 1]; $i += 2
+        }
+        elseif ($tok -eq '-BundleId') {
+            if ($i + 1 -ge $argv.Count) { throw "Flag $tok requires a value." }
+            $flags['BundleId'] = $argv[$i + 1]; $i += 2
+        }
         elseif ($tok -like '-*') { throw "Unknown flag '$tok'." }
         else { $positional += $tok; $i++ }
     }
@@ -49,6 +55,17 @@ if (Test-Path $ctx.Dest) {
     exit 1
 }
 
+$gitEmail = git config user.email 2>$null
+$gitName = git config user.name 2>$null
+$global:LASTEXITCODE = 0
+if (-not $gitEmail -or -not $gitName) {
+    [Console]::Error.WriteLine('git identity is not configured (needed for the initial commit).')
+    [Console]::Error.WriteLine('Configure it once, then re-run:')
+    [Console]::Error.WriteLine("  git config --global user.email 'you@example.com'")
+    [Console]::Error.WriteLine("  git config --global user.name 'Your Name'")
+    exit 1
+}
+
 try {
     if ($handler.PreInstall) { & $handler.PreInstall $ctx }
     & $handler.Scaffold $ctx
@@ -75,6 +92,9 @@ try {
 }
 catch {
     [Console]::Error.WriteLine("new-project failed: $($_.Exception.Message)")
+    if (Test-Path $ctx.Dest) {
+        [Console]::Error.WriteLine("Partial output may remain at $($ctx.Dest); delete it before re-running.")
+    }
     exit 1
 }
 
