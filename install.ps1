@@ -2,7 +2,8 @@
 param(
     [string]$BinDir = (Join-Path $HOME '.agent-harness/bin'),
     [switch]$NoPath,
-    [switch]$NoConfig
+    [switch]$NoConfig,
+    [string]$ConfigPath = (Join-Path $HOME '.agent-harness/config.json')
 )
 $ErrorActionPreference = 'Stop'
 
@@ -34,14 +35,20 @@ if (-not $NoPath) {
 }
 
 if (-not $NoConfig) {
-    $cfgDir = Join-Path $HOME '.agent-harness'
-    $cfgPath = Join-Path $cfgDir 'config.json'
+    $cfgDir = Split-Path -Parent $ConfigPath
     New-Item -ItemType Directory -Force -Path $cfgDir | Out-Null
-    $cfg = if (Test-Path $cfgPath) { Get-Content $cfgPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
+    $cfg = [pscustomobject]@{}
+    if (Test-Path $ConfigPath) {
+        $raw = Get-Content $ConfigPath -Raw
+        if ($raw -and $raw.Trim()) {
+            $parsed = $raw | ConvertFrom-Json
+            if ($parsed) { $cfg = $parsed }
+        }
+    }
     if (-not $cfg.repoPath) {
         $cfg | Add-Member -NotePropertyName repoPath -NotePropertyValue $repo -Force
-        ($cfg | ConvertTo-Json -Depth 5) | Set-Content -Path $cfgPath -Encoding UTF8
-        Write-Host "Set repoPath in $cfgPath so agent skills resolve to this checkout."
+        ($cfg | ConvertTo-Json -Depth 5) | Set-Content -Path $ConfigPath -Encoding UTF8
+        Write-Host "Set repoPath in $ConfigPath so agent skills resolve to this checkout."
     }
 }
 
