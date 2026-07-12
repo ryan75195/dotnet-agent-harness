@@ -5,7 +5,8 @@ description: Use when creating a new .NET ETL/API service from the agent-harness
 
 # New .NET ETL API Project
 
-Scaffold a .NET 10 ETL/API solution from the agent-harness `etl-api` template (Roslyn analyzers + architecture tests at error severity, Claude and Codex agent configs).
+Scaffold a .NET 10 ETL/API solution by delegating to the standalone `new-project` CLI
+(the single source of truth for scaffold -> stamp -> setup -> verify).
 
 ## Inputs
 
@@ -18,29 +19,15 @@ Scaffold a .NET 10 ETL/API solution from the agent-harness `etl-api` template (R
    ```powershell
    $repo = & "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-repo.ps1" | Select-Object -Last 1
    ```
-2. **Install the templates** (idempotent):
+2. **Run the CLI** (omit `-Destination` when defaulted):
    ```powershell
-   dotnet new install "$repo/dotnet" --force
+   & "$repo/new-project.ps1" dotnet-etl-api <Name> -Destination <dir>
    ```
-3. **Scaffold:**
-   ```powershell
-   dotnet new etl-api -n <Name> -o <dir>
-   ```
-4. **Stamp provenance:**
-   ```powershell
-   & "${CLAUDE_PLUGIN_ROOT}/scripts/write-stamp.ps1" -ProjectDir <dir> -Template etl-api -ProjectName <Name> -RepoPath $repo
-   ```
-5. **Run setup** (git init, hooks):
-   ```powershell
-   cd <dir>
-   .\setup.ps1
-   ```
-   If setup already created the initial commit before the stamp existed, commit the stamp with `git add .harness.json; git commit --no-verify -m "Add harness provenance stamp"`.
-6. **Verify before claiming success:**
-   ```powershell
-   dotnet build --no-incremental
-   dotnet test --no-build --verbosity minimal
-   ```
-7. **Report:** project path, the development lifecycle from the project's CLAUDE.md (issue → feat branch → commit → PR), and that analyzers fire at error severity.
+   This installs the templates, scaffolds, stamps provenance, runs setup, and verifies
+   (`dotnet build` + `dotnet test`). If it prints a git-identity error, relay the fix and
+   stop until the user configures git, then re-run.
+3. **Report** what the CLI printed: the project path, the development lifecycle from the
+   project's CLAUDE.md (issue -> feat branch -> commit -> PR), and that analyzers fire at
+   error severity.
 
-Never hand-edit `.harness.json`.
+Never hand-edit `.harness.json` — the CLI writes it.
