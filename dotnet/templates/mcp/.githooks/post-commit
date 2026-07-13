@@ -1,0 +1,20 @@
+#!/bin/bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+[ -f "$REPO_ROOT/.githooks/harness-feedback.sh" ] || exit 0
+. "$REPO_ROOT/.githooks/harness-feedback.sh"
+
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null) || exit 0
+PENDING="$GIT_DIR/harness-pending-event"
+[ -f "$PENDING" ] || exit 0
+(
+  set +e
+  ID=$(cat "$PENDING")
+  SHA=$(git rev-parse HEAD 2>/dev/null)
+  if [ -n "$ID" ] && [ -n "$SHA" ]; then
+    printf '{"id":"%s","fixCommit":"%s"}\n' "$ID" "$SHA" >> "$HARNESS_FEEDBACK_DIR/events.jsonl" 2>/dev/null
+    git show HEAD --format= --patch > "$HARNESS_FEEDBACK_DIR/diffs/$ID.fix.patch" 2>/dev/null
+  fi
+  rm -f "$PENDING" 2>/dev/null
+)
+exit 0
