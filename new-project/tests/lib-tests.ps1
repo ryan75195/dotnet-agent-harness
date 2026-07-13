@@ -14,7 +14,7 @@ $types = ($handlers | ForEach-Object { $_.Type }) | Sort-Object
 Assert (($types -join ',') -eq 'dotnet-cli,dotnet-etl-api,dotnet-mcp,expo') "discovery finds four types, got $($types -join ',')"
 
 $usage = Format-NewProjectUsage -Handlers $handlers
-foreach ($t in 'expo', 'dotnet-cli', 'dotnet-etl-api') { Assert ($usage -match [regex]::Escape($t)) "usage lists $t" }
+foreach ($t in 'expo', 'dotnet-cli', 'dotnet-etl-api', 'dotnet-mcp') { Assert ($usage -match [regex]::Escape($t)) "usage lists $t" }
 Assert ($usage -match 'BundleId') 'usage shows expo BundleId flag'
 
 $plan = Resolve-NewProjectPlan -Handlers $handlers -Type 'expo' -Name 'MyApp' -Flags @{ BundleId = 'com.acme.myapp' } -Cwd 'C:/tmp'

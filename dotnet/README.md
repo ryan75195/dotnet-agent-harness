@@ -44,7 +44,7 @@ git clone https://github.com/ryan75195/dotnet-agent-harness
 dotnet new install .\dotnet-agent-harness\dotnet
 ```
 
-Both templates register at once. Verify:
+All three templates register at once. Verify:
 
 ```powershell
 dotnet new list cli
