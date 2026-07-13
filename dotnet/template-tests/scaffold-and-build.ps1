@@ -26,6 +26,10 @@ try {
     dotnet build
     if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 
+    Write-Host "Verifying formatting (the scaffolded pre-commit gate runs this)..."
+    dotnet format --verify-no-changes
+    if ($LASTEXITCODE -ne 0) { throw "dotnet format --verify-no-changes found issues on a fresh scaffold" }
+
     Write-Host "Running scaffolded tests..."
     dotnet test --no-build --verbosity minimal
     if ($LASTEXITCODE -ne 0) { throw "Tests failed" }

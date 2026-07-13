@@ -28,6 +28,10 @@ jobs:
         working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
         run: dotnet build --no-incremental
 
+      - name: Verify formatting (matches the scaffolded pre-commit gate)
+        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
+        run: dotnet format --verify-no-changes
+
       - name: Run scaffolded tests
         working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
         run: dotnet test --no-build --verbosity minimal
