@@ -1,5 +1,16 @@
 using McpServer.Core;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddCoreServices();
-await builder.Build().RunAsync();
+builder.Services.Add\u004dcpServer()
+    .WithHttpTransport()
+    .WithToolsFromAssembly()
+    .WithResourcesFromAssembly()
+    .WithPromptsFromAssembly();
+
+var app = builder.Build();
+app.MapMcp();
+app.Run();
+
+public partial class Program;
