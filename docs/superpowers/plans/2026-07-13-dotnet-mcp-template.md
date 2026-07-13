@@ -11,6 +11,7 @@
 ## Global Constraints
 
 - **Base template:** copy `dotnet/templates/cli` verbatim to `dotnet/templates/mcp`, then rename. The cli files are the content source for everything not listed as MCP-specific below.
+- **Project prefix / sourceName is `SampleMcp` (NOT `McpServer`).** `dotnet new` replaces the `sourceName` as a literal substring, and `McpServer` is a substring of the SDK's own identifiers (`AddMcpServer`, `[McpServerTool]`, …) — so a sourceName of `McpServer` corrupts those SDK calls when scaffolding under any other name. The template's projects are therefore named `SampleMcp.Server` / `SampleMcp.Core` / `SampleMcp.Analyzers` / `SampleMcp.Tests.*` (with `template.json` `sourceName: "SampleMcp"`); `SampleMcp` is not a substring of any SDK token, so `AddMcpServer()` / `[McpServer*]` survive scaffolding intact. Scaffolding `dotnet new mcp -n Weather` yields `Weather.Server`, `Weather.Core`, etc.
 - **Verified package versions (spiked, do not change):** Server project → `ModelContextProtocol.AspNetCore` `2.0.0-preview.2`. Integration test → `ModelContextProtocol` `2.0.0-preview.2` + `Microsoft.AspNetCore.Mvc.Testing` `10.0.9`. (These transitively pull `ModelContextProtocol.Core` and `Microsoft.Extensions.AI.Abstractions`.)
 - **Verified server SDK API (spiked and compiled):**
   ```csharp
@@ -78,12 +79,12 @@ Rename directories and files first (paths contain `ConsoleApp` and `Cli`), then 
 cd C:/Users/ryan7/programming/agent-project-templates/dotnet/templates/mcp
 # 2a: rename directory/file names ConsoleApp -> McpServer (deepest first)
 find . -depth -name '*ConsoleApp*' | while read p; do git mv 2>/dev/null "$p" "${p//ConsoleApp/McpServer}" || mv "$p" "${p//ConsoleApp/McpServer}"; done
-# 2b: rename the host project dir/files Cli -> Server (only the McpServer.Cli host + test refs live under names with 'Cli')
-find . -depth -name '*McpServer.Cli*' | while read p; do mv "$p" "${p//McpServer.Cli/McpServer.Server}"; done
-# 2c: replace file contents — ConsoleApp -> McpServer, then McpServer.Cli -> McpServer.Server and the bare Cli tokens the arch tests use
+# 2b: rename the host project dir/files Cli -> Server (only the SampleMcp.Cli host + test refs live under names with 'Cli')
+find . -depth -name '*SampleMcp.Cli*' | while read p; do mv "$p" "${p//SampleMcp.Cli/SampleMcp.Server}"; done
+# 2c: replace file contents — ConsoleApp -> McpServer, then SampleMcp.Cli -> SampleMcp.Server and the bare Cli tokens the arch tests use
 grep -rIl --exclude-dir=bin --exclude-dir=obj 'ConsoleApp' . | while read f; do sed -i 's/ConsoleApp/McpServer/g' "$f"; done
-grep -rIl --exclude-dir=bin --exclude-dir=obj 'McpServer\.Cli\|CliAssembly\|"McpServer.Cli"\|Cli\b' . | while read f; do
-  sed -i -e 's/McpServer\.Cli/McpServer.Server/g' -e 's/CliAssembly/ServerAssembly/g' "$f"; done
+grep -rIl --exclude-dir=bin --exclude-dir=obj 'McpServer\.Cli\|CliAssembly\|"SampleMcp.Cli"\|Cli\b' . | while read f; do
+  sed -i -e 's/McpServer\.Cli/SampleMcp.Server/g' -e 's/CliAssembly/ServerAssembly/g' "$f"; done
 ```
 
 Then hand-fix the remaining `Cli`-token references in the architecture tests (the bare word `Cli` in identifiers/strings that the blanket sed above may not have fully caught). Verify by grepping — these must ALL become `Server`:
@@ -92,7 +93,7 @@ Then hand-fix the remaining `Cli`-token references in the architecture tests (th
 grep -rIn --exclude-dir=bin --exclude-dir=obj -w 'Cli\|cli' dotnet/templates/mcp \
   | grep -v '\.template\.config' | grep -iv 'client'
 ```
-Expected after fixes: no matches (except any inside `template.json`, handled next, and unrelated substrings like "client"). Specifically ensure these read `Server`: `TestHelpers.ServerAssembly` (was `CliAssembly`), `Assembly.Load("McpServer.Server")` and the `Should_keep_cli_depending_only_on_first_party_core` test name → rename that test method to `Should_keep_server_depending_only_on_first_party_core` and its `BeEquivalentTo(new[] { "McpServer.Core" })`, `ServiceShapeTests` namespace `McpServer.Server.Commands`, `CodeStructureTests` `srcDirs` entry `src/McpServer.Server` and `sourceAssemblyMap` key `"McpServer.Server"` → `".Server"`, `.slnx` project paths, `InternalsVisibleTo` in the host csproj, and the Integration csproj `ProjectReference` to the host.
+Expected after fixes: no matches (except any inside `template.json`, handled next, and unrelated substrings like "client"). Specifically ensure these read `Server`: `TestHelpers.ServerAssembly` (was `CliAssembly`), `Assembly.Load("SampleMcp.Server")` and the `Should_keep_cli_depending_only_on_first_party_core` test name → rename that test method to `Should_keep_server_depending_only_on_first_party_core` and its `BeEquivalentTo(new[] { "SampleMcp.Core" })`, `ServiceShapeTests` namespace `SampleMcp.Server.Commands`, `CodeStructureTests` `srcDirs` entry `src/SampleMcp.Server` and `sourceAssemblyMap` key `"SampleMcp.Server"` → `".Server"`, `.slnx` project paths, `InternalsVisibleTo` in the host csproj, and the Integration csproj `ProjectReference` to the host.
 
 - [ ] **Step 3: Update `template.json`**
 
@@ -103,17 +104,17 @@ Replace `dotnet/templates/mcp/.template.config/template.json` with:
   "$schema": "http://json.schemastore.org/template",
   "author": "ryan75195",
   "classifications": ["MCP", "Server", "Web"],
-  "identity": "McpServer.Template",
+  "identity": "SampleMcp.Template",
   "name": "MCP server solution",
   "shortName": "mcp",
   "tags": {
     "language": "C#",
     "type": "solution"
   },
-  "sourceName": "McpServer",
+  "sourceName": "SampleMcp",
   "preferNameDirectory": true,
   "primaryOutputs": [
-    { "path": "src/McpServer.Server/McpServer.Server.csproj" }
+    { "path": "src/SampleMcp.Server/SampleMcp.Server.csproj" }
   ],
   "postActions": [
     {
@@ -126,7 +127,7 @@ Replace `dotnet/templates/mcp/.template.config/template.json` with:
 }
 ```
 
-Also confirm `harness-manifest.json` ownedPaths references `src/McpServer.Analyzers/**` (renamed from `ConsoleApp.Analyzers`), and rename the host `UserSecretsId` GUID line is fine as-is (any GUID works).
+Also confirm `harness-manifest.json` ownedPaths references `src/SampleMcp.Analyzers/**` (renamed from `ConsoleApp.Analyzers`), and rename the host `UserSecretsId` GUID line is fine as-is (any GUID works).
 
 - [ ] **Step 4: Verify the renamed base scaffolds and passes green**
 
@@ -136,7 +137,7 @@ dotnet new install ./dotnet --force
 rm -rf "$TEMP/mcp-t1"; dotnet new mcp -n RenameCheck -o "$(cygpath -w "$TEMP")/mcp-t1"
 cd "$TEMP/mcp-t1" && dotnet build --no-incremental && dotnet test --no-build --verbosity minimal
 ```
-Expected: build succeeds; all tests pass. (At this point the host `McpServer.Server` is still a console Worker app — that's expected; Task 2 converts it.)
+Expected: build succeeds; all tests pass. (At this point the host `SampleMcp.Server` is still a console Worker app — that's expected; Task 2 converts it.)
 
 - [ ] **Step 5: Commit**
 
@@ -151,14 +152,14 @@ git commit -m "Add mcp template as a renamed copy of the cli template base"
 ### Task 2: Convert the host project to an ASP.NET Core MCP server
 
 **Files:**
-- Modify: `dotnet/templates/mcp/src/McpServer.Server/McpServer.Server.csproj`
-- Modify: `dotnet/templates/mcp/src/McpServer.Server/Program.cs`
+- Modify: `dotnet/templates/mcp/src/SampleMcp.Server/SampleMcp.Server.csproj`
+- Modify: `dotnet/templates/mcp/src/SampleMcp.Server/Program.cs`
 
 **Interfaces:** Consumes the renamed base from Task 1. Produces an ASP.NET Core MCP host (no primitives yet) exposing MCP over HTTP, with `public partial class Program;` for integration testing. Later tasks add the Core service, primitives, and protocol test.
 
 - [ ] **Step 1: Rewrite the host csproj**
 
-Replace `dotnet/templates/mcp/src/McpServer.Server/McpServer.Server.csproj` with:
+Replace `dotnet/templates/mcp/src/SampleMcp.Server/SampleMcp.Server.csproj` with:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -167,7 +168,7 @@ Replace `dotnet/templates/mcp/src/McpServer.Server/McpServer.Server.csproj` with
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-McpServer.Server-6f1b2c3d-4e5a-6b7c-8d9e-0a1b2c3d4e5f</UserSecretsId>
+    <UserSecretsId>dotnet-SampleMcp.Server-6f1b2c3d-4e5a-6b7c-8d9e-0a1b2c3d4e5f</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -175,12 +176,12 @@ Replace `dotnet/templates/mcp/src/McpServer.Server/McpServer.Server.csproj` with
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\McpServer.Core\McpServer.Core.csproj" />
+    <ProjectReference Include="..\SampleMcp.Core\SampleMcp.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>McpServer.Tests.Unit</_Parameter1>
+      <_Parameter1>SampleMcp.Tests.Unit</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 
@@ -189,10 +190,10 @@ Replace `dotnet/templates/mcp/src/McpServer.Server/McpServer.Server.csproj` with
 
 - [ ] **Step 2: Rewrite Program.cs as the MCP host**
 
-Replace `dotnet/templates/mcp/src/McpServer.Server/Program.cs` with:
+Replace `dotnet/templates/mcp/src/SampleMcp.Server/Program.cs` with:
 
 ```csharp
-using McpServer.Core;
+using SampleMcp.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -222,7 +223,7 @@ Expected: green. The LayerDependency test `Should_keep_server_depending_only_on_
 - [ ] **Step 4: Commit**
 
 ```bash
-git add dotnet/templates/mcp/src/McpServer.Server
+git add dotnet/templates/mcp/src/SampleMcp.Server
 git commit -m "Convert mcp template host to an ASP.NET Core MCP server"
 ```
 
@@ -231,20 +232,20 @@ git commit -m "Convert mcp template host to an ASP.NET Core MCP server"
 ### Task 3: Add the Core service (interface + impl + DI + unit fixture)
 
 **Files:**
-- Create: `dotnet/templates/mcp/src/McpServer.Core/Interfaces/IGreetingService.cs`
-- Create: `dotnet/templates/mcp/src/McpServer.Core/Services/GreetingService.cs`
-- Modify: `dotnet/templates/mcp/src/McpServer.Core/ServiceCollectionExtensions.cs`
-- Modify: `dotnet/templates/mcp/tests/McpServer.Tests.Architecture/TestHelpers.cs`
-- Create: `dotnet/templates/mcp/tests/McpServer.Tests.Unit/Core/GreetingServiceTests.cs`
+- Create: `dotnet/templates/mcp/src/SampleMcp.Core/Interfaces/IGreetingService.cs`
+- Create: `dotnet/templates/mcp/src/SampleMcp.Core/Services/GreetingService.cs`
+- Modify: `dotnet/templates/mcp/src/SampleMcp.Core/ServiceCollectionExtensions.cs`
+- Modify: `dotnet/templates/mcp/tests/SampleMcp.Tests.Architecture/TestHelpers.cs`
+- Create: `dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Core/GreetingServiceTests.cs`
 
-**Interfaces:** Produces `McpServer.Core.Interfaces.IGreetingService` (method `string Greet(string name)`) and `McpServer.Core.Services.GreetingService`, registered in `AddCoreServices`. Consumed by the tool in Task 4.
+**Interfaces:** Produces `SampleMcp.Core.Interfaces.IGreetingService` (method `string Greet(string name)`) and `SampleMcp.Core.Services.GreetingService`, registered in `AddCoreServices`. Consumed by the tool in Task 4.
 
 - [ ] **Step 1: Create the interface**
 
-`dotnet/templates/mcp/src/McpServer.Core/Interfaces/IGreetingService.cs`:
+`dotnet/templates/mcp/src/SampleMcp.Core/Interfaces/IGreetingService.cs`:
 
 ```csharp
-namespace McpServer.Core.Interfaces;
+namespace SampleMcp.Core.Interfaces;
 
 public interface IGreetingService
 {
@@ -254,12 +255,12 @@ public interface IGreetingService
 
 - [ ] **Step 2: Create the implementation**
 
-`dotnet/templates/mcp/src/McpServer.Core/Services/GreetingService.cs`:
+`dotnet/templates/mcp/src/SampleMcp.Core/Services/GreetingService.cs`:
 
 ```csharp
-using McpServer.Core.Interfaces;
+using SampleMcp.Core.Interfaces;
 
-namespace McpServer.Core.Services;
+namespace SampleMcp.Core.Services;
 
 public sealed class GreetingService : IGreetingService
 {
@@ -269,14 +270,14 @@ public sealed class GreetingService : IGreetingService
 
 - [ ] **Step 3: Register it in AddCoreServices**
 
-Replace `dotnet/templates/mcp/src/McpServer.Core/ServiceCollectionExtensions.cs` with:
+Replace `dotnet/templates/mcp/src/SampleMcp.Core/ServiceCollectionExtensions.cs` with:
 
 ```csharp
-using McpServer.Core.Interfaces;
-using McpServer.Core.Services;
+using SampleMcp.Core.Interfaces;
+using SampleMcp.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace McpServer.Core;
+namespace SampleMcp.Core;
 
 public static class ServiceCollectionExtensions
 {
@@ -290,24 +291,24 @@ public static class ServiceCollectionExtensions
 
 - [ ] **Step 4: Point ServiceNamespaces at the Core services namespace**
 
-In `dotnet/templates/mcp/tests/McpServer.Tests.Architecture/TestHelpers.cs`, change the `ServiceNamespaces` array so `ServiceShapeTests`/`NamingConventionTests` check the new service:
+In `dotnet/templates/mcp/tests/SampleMcp.Tests.Architecture/TestHelpers.cs`, change the `ServiceNamespaces` array so `ServiceShapeTests`/`NamingConventionTests` check the new service:
 
 ```csharp
     public static readonly string[] ServiceNamespaces =
     [
-        "McpServer.Core.Services"
+        "SampleMcp.Core.Services"
     ];
 ```
 
 - [ ] **Step 5: Add the unit fixture (in a `.Core` sub-namespace)**
 
-`dotnet/templates/mcp/tests/McpServer.Tests.Unit/Core/GreetingServiceTests.cs`:
+`dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Core/GreetingServiceTests.cs`:
 
 ```csharp
 using FluentAssertions;
-using McpServer.Core.Services;
+using SampleMcp.Core.Services;
 
-namespace McpServer.Tests.Unit.Core;
+namespace SampleMcp.Tests.Unit.Core;
 
 [TestFixture]
 public class GreetingServiceTests
@@ -324,7 +325,7 @@ public class GreetingServiceTests
 }
 ```
 
-Note: the Unit test project must reference FluentAssertions. The cli Unit csproj already pulls the analyzer/test stack; if FluentAssertions is not referenced there, add `<PackageReference Include="FluentAssertions" Version="6.12.0" />` (match the version used in the Architecture project — check `dotnet/templates/mcp/tests/McpServer.Tests.Architecture/McpServer.Tests.Architecture.csproj`) to `McpServer.Tests.Unit.csproj`.
+Note: the Unit test project must reference FluentAssertions. The cli Unit csproj already pulls the analyzer/test stack; if FluentAssertions is not referenced there, add `<PackageReference Include="FluentAssertions" Version="6.12.0" />` (match the version used in the Architecture project — check `dotnet/templates/mcp/tests/SampleMcp.Tests.Architecture/SampleMcp.Tests.Architecture.csproj`) to `SampleMcp.Tests.Unit.csproj`.
 
 - [ ] **Step 6: Verify green**
 
@@ -338,7 +339,7 @@ Expected: green. DiRegistration finds `IGreetingService` registered; ServiceShap
 - [ ] **Step 7: Commit**
 
 ```bash
-git add dotnet/templates/mcp/src/McpServer.Core dotnet/templates/mcp/tests/McpServer.Tests.Architecture/TestHelpers.cs dotnet/templates/mcp/tests/McpServer.Tests.Unit/Core
+git add dotnet/templates/mcp/src/SampleMcp.Core dotnet/templates/mcp/tests/SampleMcp.Tests.Architecture/TestHelpers.cs dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Core
 git commit -m "Add Core greeting service to mcp template with DI and unit coverage"
 ```
 
@@ -347,26 +348,26 @@ git commit -m "Add Core greeting service to mcp template with DI and unit covera
 ### Task 4: Add the MCP primitives (tool, resource, prompt) + unit fixtures + suffix rule
 
 **Files:**
-- Create: `dotnet/templates/mcp/src/McpServer.Server/Tools/EchoTool.cs`
-- Create: `dotnet/templates/mcp/src/McpServer.Server/Resources/GreetingResource.cs`
-- Create: `dotnet/templates/mcp/src/McpServer.Server/Prompts/SummarizePrompt.cs`
-- Modify: `dotnet/templates/mcp/tests/McpServer.Tests.Architecture/NamingConventionTests.cs`
-- Create: `dotnet/templates/mcp/tests/McpServer.Tests.Unit/Server/EchoToolTests.cs`
-- Create: `dotnet/templates/mcp/tests/McpServer.Tests.Unit/Server/GreetingResourceTests.cs`
-- Create: `dotnet/templates/mcp/tests/McpServer.Tests.Unit/Server/SummarizePromptTests.cs`
+- Create: `dotnet/templates/mcp/src/SampleMcp.Server/Tools/EchoTool.cs`
+- Create: `dotnet/templates/mcp/src/SampleMcp.Server/Resources/GreetingResource.cs`
+- Create: `dotnet/templates/mcp/src/SampleMcp.Server/Prompts/SummarizePrompt.cs`
+- Modify: `dotnet/templates/mcp/tests/SampleMcp.Tests.Architecture/NamingConventionTests.cs`
+- Create: `dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Server/EchoToolTests.cs`
+- Create: `dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Server/GreetingResourceTests.cs`
+- Create: `dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Server/SummarizePromptTests.cs`
 
 **Interfaces:** Consumes `IGreetingService`. Produces three attribute-discovered MCP primitives named `echo` (tool), `greeting` (resource), `summarize` (prompt), covered by unit fixtures. Consumed by the protocol test in Task 5.
 
 - [ ] **Step 1: Add the tool**
 
-`dotnet/templates/mcp/src/McpServer.Server/Tools/EchoTool.cs`:
+`dotnet/templates/mcp/src/SampleMcp.Server/Tools/EchoTool.cs`:
 
 ```csharp
 using System.ComponentModel;
-using McpServer.Core.Interfaces;
+using SampleMcp.Core.Interfaces;
 using ModelContextProtocol.Server;
 
-namespace McpServer.Server.Tools;
+namespace SampleMcp.Server.Tools;
 
 [McpServerToolType]
 public sealed class EchoTool(IGreetingService greeting)
@@ -378,13 +379,13 @@ public sealed class EchoTool(IGreetingService greeting)
 
 - [ ] **Step 2: Add the resource**
 
-`dotnet/templates/mcp/src/McpServer.Server/Resources/GreetingResource.cs`:
+`dotnet/templates/mcp/src/SampleMcp.Server/Resources/GreetingResource.cs`:
 
 ```csharp
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 
-namespace McpServer.Server.Resources;
+namespace SampleMcp.Server.Resources;
 
 [McpServerResourceType]
 public sealed class GreetingResource
@@ -397,13 +398,13 @@ public sealed class GreetingResource
 
 - [ ] **Step 3: Add the prompt**
 
-`dotnet/templates/mcp/src/McpServer.Server/Prompts/SummarizePrompt.cs`:
+`dotnet/templates/mcp/src/SampleMcp.Server/Prompts/SummarizePrompt.cs`:
 
 ```csharp
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 
-namespace McpServer.Server.Prompts;
+namespace SampleMcp.Server.Prompts;
 
 [McpServerPromptType]
 public sealed class SummarizePrompt
@@ -415,7 +416,7 @@ public sealed class SummarizePrompt
 
 - [ ] **Step 4: Allow the Tool/Resource/Prompt role suffixes**
 
-In `dotnet/templates/mcp/tests/McpServer.Tests.Architecture/NamingConventionTests.cs`, extend `AllowedSuffixes` to include the MCP roles:
+In `dotnet/templates/mcp/tests/SampleMcp.Tests.Architecture/NamingConventionTests.cs`, extend `AllowedSuffixes` to include the MCP roles:
 
 ```csharp
     private static readonly HashSet<string> AllowedSuffixes =
@@ -430,14 +431,14 @@ In `dotnet/templates/mcp/tests/McpServer.Tests.Architecture/NamingConventionTest
 
 - [ ] **Step 5: Add unit fixtures for each primitive (in a `.Server` sub-namespace)**
 
-`dotnet/templates/mcp/tests/McpServer.Tests.Unit/Server/EchoToolTests.cs`:
+`dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Server/EchoToolTests.cs`:
 
 ```csharp
 using FluentAssertions;
-using McpServer.Core.Services;
-using McpServer.Server.Tools;
+using SampleMcp.Core.Services;
+using SampleMcp.Server.Tools;
 
-namespace McpServer.Tests.Unit.Server;
+namespace SampleMcp.Tests.Unit.Server;
 
 [TestFixture]
 public class EchoToolTests
@@ -454,13 +455,13 @@ public class EchoToolTests
 }
 ```
 
-`dotnet/templates/mcp/tests/McpServer.Tests.Unit/Server/GreetingResourceTests.cs`:
+`dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Server/GreetingResourceTests.cs`:
 
 ```csharp
 using FluentAssertions;
-using McpServer.Server.Resources;
+using SampleMcp.Server.Resources;
 
-namespace McpServer.Tests.Unit.Server;
+namespace SampleMcp.Tests.Unit.Server;
 
 [TestFixture]
 public class GreetingResourceTests
@@ -477,13 +478,13 @@ public class GreetingResourceTests
 }
 ```
 
-`dotnet/templates/mcp/tests/McpServer.Tests.Unit/Server/SummarizePromptTests.cs`:
+`dotnet/templates/mcp/tests/SampleMcp.Tests.Unit/Server/SummarizePromptTests.cs`:
 
 ```csharp
 using FluentAssertions;
-using McpServer.Server.Prompts;
+using SampleMcp.Server.Prompts;
 
-namespace McpServer.Tests.Unit.Server;
+namespace SampleMcp.Tests.Unit.Server;
 
 [TestFixture]
 public class SummarizePromptTests
@@ -512,7 +513,7 @@ Expected: green. NamingConvention accepts `EchoTool`/`GreetingResource`/`Summari
 - [ ] **Step 7: Commit**
 
 ```bash
-git add dotnet/templates/mcp/src/McpServer.Server dotnet/templates/mcp/tests
+git add dotnet/templates/mcp/src/SampleMcp.Server dotnet/templates/mcp/tests
 git commit -m "Add sample MCP tool, resource, and prompt with unit coverage"
 ```
 
@@ -521,26 +522,26 @@ git commit -m "Add sample MCP tool, resource, and prompt with unit coverage"
 ### Task 5: Add the MCP protocol integration test
 
 **Files:**
-- Modify: `dotnet/templates/mcp/tests/McpServer.Tests.Integration/McpServer.Tests.Integration.csproj`
-- Delete: `dotnet/templates/mcp/tests/McpServer.Tests.Integration/SmokeTests.cs`
-- Create: `dotnet/templates/mcp/tests/McpServer.Tests.Integration/McpServerProtocolTests.cs`
+- Modify: `dotnet/templates/mcp/tests/SampleMcp.Tests.Integration/SampleMcp.Tests.Integration.csproj`
+- Delete: `dotnet/templates/mcp/tests/SampleMcp.Tests.Integration/SmokeTests.cs`
+- Create: `dotnet/templates/mcp/tests/SampleMcp.Tests.Integration/ProtocolTests.cs`
 
-**Interfaces:** Consumes the running server (via `WebApplicationFactory<Program>`) and the MCP client SDK. Produces a real protocol test that handshakes, lists all three primitives, and calls the tool. (Fixture named `McpServerProtocolTests` — source type `McpServerProtocol` does not exist, so CI0002 imposes no coverage requirement.)
+**Interfaces:** Consumes the running server (via `WebApplicationFactory<Program>`) and the MCP client SDK. Produces a real protocol test that handshakes, lists all three primitives, and calls the tool. (Fixture named `ProtocolTests` — source type `McpServerProtocol` does not exist, so CI0002 imposes no coverage requirement.)
 
 - [ ] **Step 1: Add the client + test-host packages to the Integration csproj**
 
-In `dotnet/templates/mcp/tests/McpServer.Tests.Integration/McpServer.Tests.Integration.csproj`, add to the package `ItemGroup`:
+In `dotnet/templates/mcp/tests/SampleMcp.Tests.Integration/SampleMcp.Tests.Integration.csproj`, add to the package `ItemGroup`:
 
 ```xml
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
     <PackageReference Include="ModelContextProtocol" Version="2.0.0-preview.2" />
 ```
 
-Confirm the project already has a `ProjectReference` to `..\..\src\McpServer.Server\McpServer.Server.csproj` (renamed from the cli host in Task 1); if not, add it. Leave the existing NUnit/coverlet references as-is.
+Confirm the project already has a `ProjectReference` to `..\..\src\SampleMcp.Server\SampleMcp.Server.csproj` (renamed from the cli host in Task 1); if not, add it. Leave the existing NUnit/coverlet references as-is.
 
 - [ ] **Step 2: Replace the smoke test with the protocol test**
 
-Delete `SmokeTests.cs`. Create `dotnet/templates/mcp/tests/McpServer.Tests.Integration/McpServerProtocolTests.cs`:
+Delete `SmokeTests.cs`. Create `dotnet/templates/mcp/tests/SampleMcp.Tests.Integration/ProtocolTests.cs`:
 
 ```csharp
 using System.Linq;
@@ -549,10 +550,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Client;
 
-namespace McpServer.Tests.Integration;
+namespace SampleMcp.Tests.Integration;
 
 [TestFixture]
-public class McpServerProtocolTests
+public class ProtocolTests
 {
     private static async Task<McpClient> ConnectClient(WebApplicationFactory<Program> factory)
     {
@@ -601,12 +602,12 @@ cd C:/Users/ryan7/programming/agent-project-templates && dotnet new install ./do
 rm -rf "$TEMP/mcp-t5"; dotnet new mcp -n ProtocolCheck -o "$(cygpath -w "$TEMP")/mcp-t5"
 cd "$TEMP/mcp-t5" && dotnet build --no-incremental && dotnet test --no-build --verbosity minimal
 ```
-Expected: green, including the two `McpServerProtocolTests` — the client connects over the in-memory handler, handshakes, lists all three primitives, and calls `echo`. (Verified working in a standalone spike before this plan.)
+Expected: green, including the two `ProtocolTests` — the client connects over the in-memory handler, handshakes, lists all three primitives, and calls `echo`. (Verified working in a standalone spike before this plan.)
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add dotnet/templates/mcp/tests/McpServer.Tests.Integration
+git add dotnet/templates/mcp/tests/SampleMcp.Tests.Integration
 git commit -m "Add MCP protocol integration test to the mcp template"
 ```
 
@@ -731,7 +732,7 @@ In `dotnet/README.md`, under "The two templates" table (update the heading/count
 
 - [ ] **Step 7b: Rewrite the template's own README and check CLAUDE.md**
 
-The `dotnet/templates/mcp/README.md` was copied from the cli template and still describes a console CLI. Rewrite it to describe the MCP server: that it serves MCP over HTTP/streamable transport (`app.MapMcp()`), ships a sample tool (`echo`), resource (`greeting`), and prompt (`summarize`), how to run it (`dotnet run --project src/McpServer.Server`) and point an MCP client at it, and that it is **unauthenticated by default** with a note that authentication (e.g. OAuth) can be added at the ASP.NET Core layer as an extension point. Then skim `dotnet/templates/mcp/CLAUDE.md`: keep the generic lifecycle/code-style sections, and fix any wording that is specific to the CLI/console shape (e.g. "how to run" references) so it matches the MCP server.
+The `dotnet/templates/mcp/README.md` was copied from the cli template and still describes a console CLI. Rewrite it to describe the MCP server: that it serves MCP over HTTP/streamable transport (`app.MapMcp()`), ships a sample tool (`echo`), resource (`greeting`), and prompt (`summarize`), how to run it (`dotnet run --project src/SampleMcp.Server`) and point an MCP client at it, and that it is **unauthenticated by default** with a note that authentication (e.g. OAuth) can be added at the ASP.NET Core layer as an extension point. Then skim `dotnet/templates/mcp/CLAUDE.md`: keep the generic lifecycle/code-style sections, and fix any wording that is specific to the CLI/console shape (e.g. "how to run" references) so it matches the MCP server.
 
 - [ ] **Step 8: Verify the wiring**
 
