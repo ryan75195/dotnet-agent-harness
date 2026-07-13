@@ -23,7 +23,8 @@ public class NamingConventionTests
         "Service", "Repository", "Client", "Store", "Context",
         "Entity", "Command", "Parser", "Converter", "Pool",
         "Worker", "Process", "Extensions", "Mapper", "Extractor",
-        "Probe", "Result", "Monitor", "Plugin", "Filter"
+        "Probe", "Result", "Monitor", "Plugin", "Filter",
+        "Tool", "Resource", "Prompt"
     ];
 
     [Test]
