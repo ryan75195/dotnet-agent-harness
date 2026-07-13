@@ -1,10 +1,10 @@
-# McpServer
+# SampleMcp
 
 MCP server solution scaffolded from the [dotnet-agent-harness](https://github.com/ryan75195/dotnet-agent-harness) `mcp` template.
 
 ## First-time setup
 
-After scaffolding (`dotnet new mcp -n McpServer`), run once:
+After scaffolding (`dotnet new mcp -n SampleMcp`), run once:
 
 ```powershell
 .\setup.ps1

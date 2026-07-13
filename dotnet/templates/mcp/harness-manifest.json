@@ -5,7 +5,7 @@
     ".editorconfig",
     "tests/.editorconfig",
     "Directory.Build.props",
-    "src/McpServer.Analyzers/**",
+    "src/SampleMcp.Analyzers/**",
     "CLAUDE.md",
     "harness-manifest.json"
   ]

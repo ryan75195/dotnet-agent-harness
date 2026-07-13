@@ -32,9 +32,9 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 
 ## Architecture
 
-- **Solution:** `McpServer.slnx`, .NET 10, three `src/` projects (`Core`, `Server`, `Analyzers`) and four `tests/` projects (`Tests.Unit`, `Tests.Integration`, `Tests.Architecture`, `Tests.Analyzers`).
-- **Architecture tests** in `tests/McpServer.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
-- **Custom analyzers** in `src/McpServer.Analyzers/` enforce CI0001-CI0013 (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc).
+- **Solution:** `SampleMcp.slnx`, .NET 10, three `src/` projects (`Core`, `Server`, `Analyzers`) and four `tests/` projects (`Tests.Unit`, `Tests.Integration`, `Tests.Architecture`, `Tests.Analyzers`).
+- **Architecture tests** in `tests/SampleMcp.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
+- **Custom analyzers** in `src/SampleMcp.Analyzers/` enforce CI0001-CI0013 (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc).
 
 ## Testing judgment calls
 
