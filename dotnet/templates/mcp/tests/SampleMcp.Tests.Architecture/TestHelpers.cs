@@ -18,7 +18,7 @@ internal static class TestHelpers
 
     public static readonly string[] ServiceNamespaces =
     [
-        "SampleMcp.Core.Data"
+        "SampleMcp.Core.Services"
     ];
 
     public static bool IsRecord(Type type) =>
