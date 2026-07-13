@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "ryan75195",
+  "classifications": ["MCP", "Server", "Web"],
+  "identity": "SampleMcp.Template",
+  "name": "MCP server solution",
+  "shortName": "mcp",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "sourceName": "SampleMcp",
+  "preferNameDirectory": true,
+  "primaryOutputs": [
+    { "path": "src/SampleMcp.Server/SampleMcp.Server.csproj" }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true,
+      "manualInstructions": [{ "text": "Run 'dotnet restore'" }]
+    }
+  ]
+}
