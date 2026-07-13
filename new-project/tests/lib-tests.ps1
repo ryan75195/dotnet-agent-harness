@@ -11,7 +11,7 @@ function AssertThrows($script, $match, $msg) {
 }
 
 $types = ($handlers | ForEach-Object { $_.Type }) | Sort-Object
-Assert (($types -join ',') -eq 'dotnet-cli,dotnet-etl-api,expo') "discovery finds three types, got $($types -join ',')"
+Assert (($types -join ',') -eq 'dotnet-cli,dotnet-etl-api,dotnet-mcp,expo') "discovery finds four types, got $($types -join ',')"
 
 $usage = Format-NewProjectUsage -Handlers $handlers
 foreach ($t in 'expo', 'dotnet-cli', 'dotnet-etl-api') { Assert ($usage -match [regex]::Escape($t)) "usage lists $t" }

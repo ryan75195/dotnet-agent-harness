@@ -25,14 +25,15 @@ Every scaffolded project includes:
 - **5 architecture-test fixtures** (NetArchTest + reflection) that fail the test run if the agent breaks layering, naming, DI shape, DI registration (every public `Core` interface must be wired in `AddCoreServices()`), or one-public-type-per-file.
 - **`Directory.Build.props`** with `TreatWarningsAsErrors=true`, `AnalysisLevel=latest-all`, and `EnforceCodeStyleInBuild=true`. Any CA / IDE / CS / CI diagnostic at error severity breaks the build.
 
-## The two templates
+## The three templates
 
 | Short name | Shape | When to pick it |
 |---|---|---|
 | `cli` | Single console entry point (`Cli`) sharing `Core` + `Analyzers`. 3 src + 4 test projects. | One executable. Background workers, CLI tools, ETL jobs, any agent task that doesn't need an HTTP surface. |
 | `etl-api` | Two entry points (`Api` + `Etl`) sharing `Core` + `Analyzers`. 4 src + 4 test projects. | An HTTP API plus a long-running worker, sharing domain logic via `Core`. The `LayerDependencyTests` enforce that they never reference each other. |
+| `mcp` | Single ASP.NET Core entry point (`Server`) serving MCP over HTTP/streamable transport, sharing `Core` + `Analyzers`. 3 src + 4 test projects. | You're building tools/resources/prompts for an MCP client (Claude, another agent) rather than a human-facing API. Ships a sample `echo` tool, `greeting` resource, and `summarize` prompt to fork from. |
 
-Pick `cli` by default. Move to `etl-api` only when you actually need both surfaces.
+Pick `cli` by default. Move to `etl-api` when you need both an HTTP API and a worker. Move to `mcp` when the HTTP surface is an MCP server, not a REST API.
 
 ## Install
 
@@ -48,12 +49,13 @@ Both templates register at once. Verify:
 ```powershell
 dotnet new list cli
 dotnet new list etl-api
+dotnet new list mcp
 ```
 
 ## Use
 
 ```powershell
-dotnet new cli -n MyTool       # or: dotnet new etl-api -n MyPlatform
+dotnet new cli -n MyTool       # or: dotnet new etl-api -n MyPlatform, dotnet new mcp -n MyMcpServer
 cd MyTool
 .\setup.ps1
 ```
@@ -93,19 +95,21 @@ dotnet-agent-harness/
     templates/
       cli/
       etl-api/
+      mcp/
   expo/
     ...                                         ← Expo app template (see root README)
 ```
 
-Each template directory under `templates/` is a self-contained `dotnet new` template. `dotnet new install <harness-root>` recursively scans for `.template.config/template.json` and registers both.
+Each template directory under `templates/` is a self-contained `dotnet new` template. `dotnet new install <harness-root>` recursively scans for `.template.config/template.json` and registers all three.
 
 ## Development
 
-This harness repo doesn't have its own pre-commit hooks (those only fire in scaffolded projects). The CI workflow is the safety net — it scaffolds + builds + tests both templates on every push. To verify changes locally before pushing:
+This harness repo doesn't have its own pre-commit hooks (those only fire in scaffolded projects). The CI workflow is the safety net — it scaffolds + builds + tests all three templates on every push. To verify changes locally before pushing:
 
 ```powershell
 .\dotnet\template-tests\scaffold-and-build.ps1 cli
 .\dotnet\template-tests\scaffold-and-build.ps1 etl-api
+.\dotnet\template-tests\scaffold-and-build.ps1 mcp
 ```
 
 Each invocation installs the chosen template, scaffolds a smoke project into `$env:TEMP`, builds it, runs all four test projects, and uninstalls.

@@ -33,6 +33,7 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 ## Architecture
 
 - **Solution:** `SampleMcp.slnx`, .NET 10, three `src/` projects (`Core`, `Server`, `Analyzers`) and four `tests/` projects (`Tests.Unit`, `Tests.Integration`, `Tests.Architecture`, `Tests.Analyzers`).
+- **`Server`** is an ASP.NET Core host that serves MCP over HTTP/streamable transport (`app.MapMcp()` in `Program.cs`). Tools live under `Tools/` (`[McpServerToolType]`), resources under `Resources/` (`[McpServerResourceType]`), prompts under `Prompts/` (`[McpServerPromptType]`) — all discovered from the assembly automatically, no manual registration. Business logic belongs in `Core`; MCP types should stay thin adapters over `Core` services, the same way a controller stays thin over application services.
 - **Architecture tests** in `tests/SampleMcp.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
 - **Custom analyzers** in `src/SampleMcp.Analyzers/` enforce CI0001-CI0013 (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc).
 

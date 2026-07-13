@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('cli', 'etl-api')]
+    [ValidateSet('cli', 'etl-api', 'mcp')]
     [string]$Template
 )
 

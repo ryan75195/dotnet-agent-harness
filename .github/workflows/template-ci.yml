@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        template: [cli, etl-api]
+        template: [cli, etl-api, mcp]
     steps:
       - uses: actions/checkout@v4
 
