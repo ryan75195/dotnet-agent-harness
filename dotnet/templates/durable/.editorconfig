@@ -181,3 +181,10 @@ dotnet_diagnostic.CS1591.severity = none
 
 # CI0009: not-null-only assertion — only meaningful in test projects
 dotnet_diagnostic.CI0009.severity = none
+
+# HttpRequest parameter is required by the [HttpTrigger] binding even when the
+# handler body never reads it (e.g. it only needs the DurableTaskClient and
+# route parameters). Scoped to Triggers/ so IDE0060 keeps enforcing dead
+# parameters everywhere else.
+[src/SampleDurable.Functions/Triggers/*.cs]
+dotnet_diagnostic.IDE0060.severity = suggestion
