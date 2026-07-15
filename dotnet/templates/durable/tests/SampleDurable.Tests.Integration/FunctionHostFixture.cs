@@ -50,9 +50,18 @@ public class FunctionHostFixture
 
     private static Process? StartCoreTools(string projectDir)
     {
+        var funcExecutable = ResolveFuncExecutable();
+        if (funcExecutable is null)
+        {
+            Assert.Fail(
+                "Could not find Azure Functions Core Tools v4 ('func') on PATH. Install it via " +
+                "'npm install -g azure-functions-core-tools@4' or the MSI/winget package, then re-run.");
+            return null;
+        }
+
         try
         {
-            return Process.Start(new ProcessStartInfo("func", $"start --port {HostPort}")
+            return Process.Start(new ProcessStartInfo(funcExecutable, $"start --port {HostPort}")
             {
                 WorkingDirectory = projectDir,
                 UseShellExecute = false,
@@ -63,10 +72,33 @@ public class FunctionHostFixture
         catch (Win32Exception exception)
         {
             Assert.Fail(
-                "Could not start Azure Functions Core Tools ('func'). Install v4 and ensure it is on PATH. " +
+                $"Could not start Azure Functions Core Tools from '{funcExecutable}'. " +
                 $"Underlying error: {exception.Message}");
             return null;
         }
+    }
+
+    private static string? ResolveFuncExecutable() =>
+        FindOnPath("func.exe") ?? FindOnPath("func.cmd");
+
+    private static string? FindOnPath(string fileName)
+    {
+        var pathVariable = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        foreach (var directory in pathVariable.Split(Path.PathSeparator))
+        {
+            if (directory.Length == 0)
+            {
+                continue;
+            }
+
+            var candidate = Path.Combine(directory, fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private static void CaptureLine(string? line)
