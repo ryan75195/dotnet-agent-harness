@@ -13,10 +13,13 @@ public static class CallbackTrigger
     public static async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "runs/{instanceId}/callback")] HttpRequest request,
         [DurableClient] DurableTaskClient client,
-        string instanceId,
-        [FromBody] AgentResult result)
+        string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(client);
+
+        var result = await request.ReadFromJsonAsync<AgentResult>();
+        ArgumentNullException.ThrowIfNull(result);
 
         await client.RaiseEventAsync(instanceId, AgentTaskOrchestrator.AgentCompletedEventName, result);
 

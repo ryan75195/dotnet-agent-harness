@@ -26,13 +26,15 @@ public static class AgentTaskOrchestrator
         await context.CallActivityAsync<AgentDispatch>(nameof(DispatchAgentActivity), workItem);
         await context.Entities.SignalEntityAsync(counter, nameof(RunCounterEntity.Dispatched));
 
+        using var timeoutCts = new CancellationTokenSource();
         var completed = context.WaitForExternalEvent<AgentResult>(AgentCompletedEventName);
-        var timeout = context.CreateTimer(context.CurrentUtcDateTime.Add(DispatchTimeout), CancellationToken.None);
+        var timeout = context.CreateTimer(context.CurrentUtcDateTime.Add(DispatchTimeout), timeoutCts.Token);
 
         var winner = await Task.WhenAny(completed, timeout);
 
         if (winner == completed)
         {
+            _ = timeoutCts.CancelAsync();
             await context.Entities.SignalEntityAsync(counter, nameof(RunCounterEntity.Completed));
             return await completed;
         }

@@ -13,10 +13,12 @@ public static class RunWebhookTrigger
     [Function(nameof(RunWebhookTrigger))]
     public static async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "runs")] HttpRequest request,
-        [DurableClient] DurableTaskClient client,
-        [FromBody] AgentRunRequest body)
+        [DurableClient] DurableTaskClient client)
     {
+        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(client);
+
+        var body = await request.ReadFromJsonAsync<AgentRunRequest>();
         ArgumentNullException.ThrowIfNull(body);
 
         var instanceId = $"run-{body.RunKey}";

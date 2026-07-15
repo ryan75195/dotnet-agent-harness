@@ -32,6 +32,19 @@ Invoke-Git config core.hooksPath .githooks
 Write-Host "Creating initial commit..."
 Invoke-Git commit -q --no-verify -m "Initial scaffold from durable template"
 
+$azurite = Get-Command azurite -ErrorAction SilentlyContinue
+if (-not $azurite) {
+    Write-Host ""
+    Write-Host "NOTE: Azurite was not found on PATH." -ForegroundColor Yellow
+    Write-Host "Durable Functions needs it for local runs and for the integration tests."
+    Write-Host "Install and start it with:"
+    Write-Host ""
+    Write-Host "  npm install -g azurite"
+    Write-Host "  azurite --silent --inMemoryPersistence --skipApiVersionCheck"
+    Write-Host ""
+    Write-Host "Unit and architecture tests (what the pre-commit hook runs) do not need it."
+}
+
 Write-Host ""
 Write-Host "Done. Next steps:"
 Write-Host "  1. dotnet restore; dotnet build"
