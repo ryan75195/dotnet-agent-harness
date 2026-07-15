@@ -6,8 +6,10 @@ namespace SampleDurable.Tests.Architecture;
 
 internal static class TestHelpers
 {
+    private const string FunctionsWorkerSdkGeneratorTool = "Microsoft.Azure.Functions.Worker.Sdk.Generators";
+
     public static bool IsGeneratedCode(Type type) =>
-        type.GetCustomAttribute<GeneratedCodeAttribute>() != null;
+        type.GetCustomAttribute<GeneratedCodeAttribute>()?.Tool == FunctionsWorkerSdkGeneratorTool;
 
     public static Assembly CoreAssembly => typeof(Core.AssemblyMarker).Assembly;
     public static Assembly FunctionsAssembly => typeof(Functions.AssemblyMarker).Assembly;
