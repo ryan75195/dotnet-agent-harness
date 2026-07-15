@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace ConsoleApp.Analyzers;
 
@@ -8,5 +8,6 @@ internal static class AnalyzerConstants
         ImmutableHashSet.Create(
             "Dispose", "DisposeAsync", "ToString", "Equals",
             "GetHashCode", "GetType", "Finalize",
-            "Start", "StartAsync", "StopAsync", "ExecuteAsync");
+            "Start", "StartAsync", "StopAsync", "ExecuteAsync",
+            "<Clone>$");
 }
