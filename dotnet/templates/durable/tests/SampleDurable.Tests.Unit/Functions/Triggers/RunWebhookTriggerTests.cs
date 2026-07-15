@@ -37,7 +37,11 @@ public class RunWebhookTriggerTests
 
         await client.Received(1).ScheduleNewOrchestrationInstanceAsync(
             "AgentRunOrchestrator",
-            Arg.Is<AgentRunRequest>(b => b.RunKey == body.RunKey),
+            Arg.Is<AgentRunRequest>(b =>
+                b.RunKey == body.RunKey
+                && b.Items.Count == 1
+                && b.Items[0].Id == "item-1"
+                && b.Items[0].Prompt == "do the thing"),
             Arg.Is<StartOrchestrationOptions>(o => o.InstanceId == "run-run-key-1"));
         result.Should().BeOfType<OkObjectResult>();
     }

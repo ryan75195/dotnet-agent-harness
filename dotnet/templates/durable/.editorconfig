@@ -207,3 +207,10 @@ dotnet_diagnostic.CI0009.severity = none
 # parameters everywhere else.
 [src/SampleDurable.Functions/Triggers/*.cs]
 dotnet_diagnostic.IDE0060.severity = suggestion
+
+# Async-over-sync advice is wrong inside replay-based orchestrators: CancelAsync defers
+# callbacks to the thread pool, off the orchestrator's single-threaded replay scheduler.
+# Cancel() runs them inline before the CancellationTokenSource is disposed. Scoped to
+# Orchestrations/ so CA1849 keeps enforcing async calls in activities and triggers.
+[src/SampleDurable.Functions/Orchestrations/*.cs]
+dotnet_diagnostic.CA1849.severity = none

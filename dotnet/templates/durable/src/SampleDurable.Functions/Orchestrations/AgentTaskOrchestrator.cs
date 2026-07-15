@@ -34,7 +34,7 @@ public static class AgentTaskOrchestrator
 
         if (winner == completed)
         {
-            _ = timeoutCts.CancelAsync();
+            timeoutCts.Cancel();
             await context.Entities.SignalEntityAsync(counter, nameof(RunCounterEntity.Completed));
             return await completed;
         }

@@ -77,6 +77,27 @@ public class AgentTaskOrchestratorTests
     }
 
     [Test]
+    public async Task Should_cancel_the_timeout_timer_when_the_callback_wins()
+    {
+        var context = CreateContext();
+        StubDispatch(context);
+        var cancelled = false;
+
+        context
+            .WaitForExternalEvent<AgentResult>(AgentTaskOrchestrator.AgentCompletedEventName)
+            .Returns(Task.FromResult(new AgentResult("item-1", true, "done")));
+        context
+            .CreateTimer(
+                Arg.Any<DateTime>(),
+                Arg.Do<CancellationToken>(token => token.Register(() => cancelled = true)))
+            .Returns(new TaskCompletionSource().Task);
+
+        await AgentTaskOrchestrator.Run(context, new AgentWorkItem("item-1", "p"));
+
+        cancelled.Should().BeTrue();
+    }
+
+    [Test]
     public async Task Should_dispatch_before_waiting_for_the_callback()
     {
         var context = CreateContext();

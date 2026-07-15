@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Net.Sockets;
+using SampleDurable.Functions.Triggers;
 
 namespace SampleDurable.Tests.Integration;
 
@@ -10,6 +12,8 @@ public class FunctionHostFixture
     private const int HostPort = 7099;
     private const int AzuriteTablePort = 10002;
     private const int TailBufferSize = 80;
+    private const string AdminFunctionsPath = "../admin/functions";
+    private const string IndexedMarker = "indexed";
 
     private static Process? _host;
     private static readonly ConcurrentQueue<string> OutputTail = new();
@@ -24,22 +28,15 @@ public class FunctionHostFixture
             Assert.Fail(
                 $"Azurite is not listening on {AzuriteTablePort}. Durable Functions needs blob (10000), " +
                 "queue (10001) and table (10002). Start it with 'azurite --silent --inMemoryPersistence " +
-                "--skipApiVersionCheck' and re-run. See README.md.");
+                "--skipApiVersionCheck' and re-run.");
         }
 
         var projectDir = ResolveFunctionsProjectDirectory();
 
-        _host = Process.Start(new ProcessStartInfo("func", $"start --port {HostPort} --csharp")
-        {
-            WorkingDirectory = projectDir,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        });
+        _host = StartCoreTools(projectDir);
 
         if (_host is null)
         {
-            Assert.Fail("Could not start Azure Functions Core Tools ('func'). Install v4 and ensure it is on PATH.");
             return;
         }
 
@@ -49,6 +46,27 @@ public class FunctionHostFixture
         _host.BeginErrorReadLine();
 
         await WaitForHost();
+    }
+
+    private static Process? StartCoreTools(string projectDir)
+    {
+        try
+        {
+            return Process.Start(new ProcessStartInfo("func", $"start --port {HostPort}")
+            {
+                WorkingDirectory = projectDir,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            });
+        }
+        catch (Win32Exception exception)
+        {
+            Assert.Fail(
+                "Could not start Azure Functions Core Tools ('func'). Install v4 and ensure it is on PATH. " +
+                $"Underlying error: {exception.Message}");
+            return null;
+        }
     }
 
     private static void CaptureLine(string? line)
@@ -108,10 +126,12 @@ public class FunctionHostFixture
     {
         using var client = new HttpClient { BaseAddress = BaseAddress };
         var deadline = DateTime.UtcNow.AddMinutes(2);
+        var lastSeen = "(never responded)";
 
         while (DateTime.UtcNow < deadline)
         {
-            if (await PortIsOpen(HostPort))
+            lastSeen = await ProbeIndexedFunctions(client);
+            if (lastSeen is IndexedMarker)
             {
                 return;
             }
@@ -121,7 +141,33 @@ public class FunctionHostFixture
 
         var tail = string.Join(Environment.NewLine, OutputTail);
         Assert.Fail(
-            $"Functions host did not start on port {HostPort} within 2 minutes. Last output:{Environment.NewLine}{tail}");
+            $"Functions host did not index {nameof(RunWebhookTrigger)} on port {HostPort} within 2 minutes. " +
+            $"Last probe of {AdminFunctionsPath}: {lastSeen}.{Environment.NewLine}Last output:{Environment.NewLine}{tail}");
+    }
+
+    private static async Task<string> ProbeIndexedFunctions(HttpClient client)
+    {
+        try
+        {
+            var response = await client.GetAsync(new Uri(BaseAddress, AdminFunctionsPath));
+            if (!response.IsSuccessStatusCode)
+            {
+                return $"HTTP {(int)response.StatusCode}";
+            }
+
+            var body = await response.Content.ReadAsStringAsync();
+            return body.Contains(nameof(RunWebhookTrigger), StringComparison.Ordinal)
+                ? IndexedMarker
+                : "responded, but no functions indexed yet";
+        }
+        catch (HttpRequestException exception)
+        {
+            return exception.Message;
+        }
+        catch (TaskCanceledException)
+        {
+            return "request timed out";
+        }
     }
 
     private static async Task<bool> PortIsOpen(int port)
