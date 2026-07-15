@@ -1063,7 +1063,7 @@ git commit -m "Add durable template orchestrations, triggers, and entity"
 Encodes the `TaskName`/extension-method gotcha so the forker inherits the correct pattern instead of discovering it.
 
 **Files:**
-- Test: `tests/SampleDurable.Tests.Unit/Functions/AgentTaskOrchestratorTests.cs`, `AgentRunOrchestratorTests.cs`
+- Test: `tests/SampleDurable.Tests.Unit/Functions/Orchestrations/AgentTaskOrchestratorTests.cs`, `AgentRunOrchestratorTests.cs`
 - Modify: `tests/SampleDurable.Tests.Unit/SampleDurable.Tests.Unit.csproj`
 
 **Interfaces:**
@@ -1082,7 +1082,13 @@ Verify the version matches what `Worker.Extensions.DurableTask` 1.18.0 resolves 
 
 - [ ] **Step 2: Write the failing test for the timeout branch**
 
-Create `tests/SampleDurable.Tests.Unit/Functions/AgentTaskOrchestratorTests.cs`:
+**Both fixtures already exist** — Task 4 created them to satisfy the per-class fixture gate, and Task 4's review found the `AgentTaskOrchestratorTests` content to be tautological ballast: it asserts `AgentCompletedEventName == "AgentCompleted"` and `DispatchTimeout == TimeSpan.FromHours(2)`, i.e. a constant compared against a hand-typed copy of its own literal, never invoking `Run`. Nothing plausible breaks those assertions, and `CallbackTriggerTests` already exercises the same constant through real wiring.
+
+**Replace that file's contents entirely** with the fixture below — do not append to it and do not preserve the two existing tests. Closing that finding is part of this task.
+
+`AgentRunOrchestratorTests` is different: its existing `SubInstanceId` tests are load-bearing (they pin a format the callback URL and Task 11 depend on). **Keep those two tests and add** the fan-out tests from Step 5 alongside them.
+
+Overwrite `tests/SampleDurable.Tests.Unit/Functions/Orchestrations/AgentTaskOrchestratorTests.cs` with:
 
 ```csharp
 using FluentAssertions;
@@ -1092,7 +1098,7 @@ using SampleDurable.Core.Models;
 using SampleDurable.Functions.Activities;
 using SampleDurable.Functions.Orchestrations;
 
-namespace SampleDurable.Tests.Unit.Functions;
+namespace SampleDurable.Tests.Unit.Functions.Orchestrations;
 
 [TestFixture]
 public class AgentTaskOrchestratorTests
@@ -1197,7 +1203,7 @@ The orchestrator from Task 4 should already satisfy these. If a test fails on `c
 
 - [ ] **Step 5: Write the fan-out test**
 
-Create `tests/SampleDurable.Tests.Unit/Functions/AgentRunOrchestratorTests.cs`:
+**Add** these two tests to the existing `tests/SampleDurable.Tests.Unit/Functions/Orchestrations/AgentRunOrchestratorTests.cs`, keeping its two existing `SubInstanceId` tests — those pin a format the callback URL and Task 11 depend on. The fixture's final shape is those two plus these two:
 
 ```csharp
 using FluentAssertions;
@@ -1208,7 +1214,7 @@ using SampleDurable.Core.Models;
 using SampleDurable.Functions.Activities;
 using SampleDurable.Functions.Orchestrations;
 
-namespace SampleDurable.Tests.Unit.Functions;
+namespace SampleDurable.Tests.Unit.Functions.Orchestrations;
 
 [TestFixture]
 public class AgentRunOrchestratorTests
