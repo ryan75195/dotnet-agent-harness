@@ -24,13 +24,41 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Azurite and Functions Core Tools
+      - name: Install Azurite and Core Tools (durable only)
         if: matrix.template == 'durable'
         shell: pwsh
         run: |
           npm install -g azurite
           npm install -g azure-functions-core-tools@4
 
+      - name: Install templates from current source
+        run: dotnet new install .
+
+      - name: Scaffold test project
+        run: dotnet new ${{ matrix.template }} -n ScaffoldTest -o ${{ runner.temp }}/scaffold-${{ matrix.template }}
+
+      - name: Build scaffolded project
+        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
+        run: dotnet build --no-incremental
+
+      - name: Verify formatting (matches the scaffolded pre-commit gate)
+        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
+        run: dotnet format --verify-no-changes
+
+      - name: Run scaffolded tests
+        if: matrix.template != 'durable'
+        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
+        run: dotnet test --no-build --verbosity minimal
+
+      # Azurite runs inside this step rather than a preceding one: started from its own
+      # step it dies at the step boundary, and the integration tests then fail with
+      # "Azurite is not listening on 10002". Keeping it here makes its lifetime cover the
+      # tests that need it by construction.
+      - name: Run scaffolded tests (durable, with Azurite)
+        if: matrix.template == 'durable'
+        shell: pwsh
+        working-directory: ${{ runner.temp }}/scaffold-durable
+        run: |
           $out = "$env:RUNNER_TEMP\azurite.out.log"
           $err = "$env:RUNNER_TEMP\azurite.err.log"
 
@@ -60,8 +88,9 @@ jobs:
 
           # Durable state lives in tables, so probe 10002. Blob (10000) alone would come up
           # while durable still fails.
+          $ready = $false
           $deadline = (Get-Date).AddMinutes(2)
-          while ((Get-Date) -lt $deadline) {
+          while (-not $ready -and (Get-Date) -lt $deadline) {
             if ($proc.HasExited) {
               # Start-Process -PassThru leaves ExitCode null for the .cmd shim, so only
               # report it when it survived. The captured stderr carries the real reason.
@@ -72,36 +101,26 @@ jobs:
               exit 1
             }
             $client = New-Object System.Net.Sockets.TcpClient
-            try {
-              $client.Connect('127.0.0.1', 10002)
-              Write-Host 'Azurite is listening on the table port (10002).'
-              exit 0
-            }
+            try { $client.Connect('127.0.0.1', 10002); $ready = $true }
             catch { Start-Sleep -Seconds 1 }
             finally { $client.Dispose() }
           }
 
-          Write-Host 'Azurite did not open the table port (10002) within 2 minutes.'
-          Show-AzuriteLog
-          exit 1
+          if (-not $ready) {
+            Write-Host 'Azurite did not open the table port (10002) within 2 minutes.'
+            Show-AzuriteLog
+            exit 1
+          }
 
-      - name: Install templates from current source
-        run: dotnet new install .
+          Write-Host 'Azurite is listening on the table port (10002).'
 
-      - name: Scaffold test project
-        run: dotnet new ${{ matrix.template }} -n ScaffoldTest -o ${{ runner.temp }}/scaffold-${{ matrix.template }}
+          dotnet test --no-build --verbosity minimal
+          $testExit = $LASTEXITCODE
 
-      - name: Build scaffolded project
-        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
-        run: dotnet build --no-incremental
+          if ($testExit -ne 0) { Show-AzuriteLog }
+          if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 
-      - name: Verify formatting (matches the scaffolded pre-commit gate)
-        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
-        run: dotnet format --verify-no-changes
-
-      - name: Run scaffolded tests
-        working-directory: ${{ runner.temp }}/scaffold-${{ matrix.template }}
-        run: dotnet test --no-build --verbosity minimal
+          exit $testExit
 
   expo-scaffold-and-validate:
     runs-on: windows-latest
