@@ -36,8 +36,12 @@ public class OrchestratorNonDurableAwaitAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
         context.RegisterSyntaxNodeAction(AnalyzeAwait, SyntaxKind.AwaitExpression);
-        context.RegisterSyntaxNodeAction(AnalyzeAwaitForEach, SyntaxKind.ForEachStatement);
-        context.RegisterSyntaxNodeAction(AnalyzeAwaitUsing, SyntaxKind.LocalDeclarationStatement);
+        context.RegisterSyntaxNodeAction(
+            AnalyzeAwaitForEach,
+            SyntaxKind.ForEachStatement,
+            SyntaxKind.ForEachVariableStatement);
+        context.RegisterSyntaxNodeAction(AnalyzeAwaitUsingDeclaration, SyntaxKind.LocalDeclarationStatement);
+        context.RegisterSyntaxNodeAction(AnalyzeAwaitUsingStatement, SyntaxKind.UsingStatement);
     }
 
     private static void AnalyzeAwait(SyntaxNodeAnalysisContext context)
@@ -48,31 +52,65 @@ public class OrchestratorNonDurableAwaitAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeAwaitForEach(SyntaxNodeAnalysisContext context)
     {
-        var statement = (ForEachStatementSyntax)context.Node;
-        if (statement.AwaitKeyword == default)
+        var statement = (CommonForEachStatementSyntax)context.Node;
+        if (statement.AwaitKeyword.IsKind(SyntaxKind.None))
         {
             return;
         }
 
-        AnalyzeAwaitedExpression(statement, statement.Expression, context);
+        AnalyzeAwaitedValue(statement, statement.Expression, context);
     }
 
-    private static void AnalyzeAwaitUsing(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeAwaitUsingDeclaration(SyntaxNodeAnalysisContext context)
     {
         var statement = (LocalDeclarationStatementSyntax)context.Node;
-        if (statement.AwaitKeyword == default)
+        if (statement.AwaitKeyword.IsKind(SyntaxKind.None))
         {
             return;
         }
 
-        foreach (var declarator in statement.Declaration.Variables)
+        AnalyzeDeclaredValues(statement, statement.Declaration, context);
+    }
+
+    private static void AnalyzeAwaitUsingStatement(SyntaxNodeAnalysisContext context)
+    {
+        var statement = (UsingStatementSyntax)context.Node;
+        if (statement.AwaitKeyword.IsKind(SyntaxKind.None))
         {
-            var initializer = declarator.Initializer?.Value;
-            if (initializer != null)
-            {
-                AnalyzeAwaitedExpression(statement, initializer, context);
-            }
+            return;
         }
+
+        AnalyzeDeclaredValues(statement, statement.Declaration, context);
+        AnalyzeAwaitedValue(statement, statement.Expression, context);
+    }
+
+    private static void AnalyzeDeclaredValues(
+        SyntaxNode node,
+        VariableDeclarationSyntax? declaration,
+        SyntaxNodeAnalysisContext context)
+    {
+        if (declaration == null)
+        {
+            return;
+        }
+
+        foreach (var declarator in declaration.Variables)
+        {
+            AnalyzeAwaitedValue(node, declarator.Initializer?.Value, context);
+        }
+    }
+
+    private static void AnalyzeAwaitedValue(
+        SyntaxNode node,
+        ExpressionSyntax? expression,
+        SyntaxNodeAnalysisContext context)
+    {
+        if (expression == null || expression is AwaitExpressionSyntax)
+        {
+            return;
+        }
+
+        AnalyzeAwaitedExpression(node, expression, context);
     }
 
     private static void AnalyzeAwaitedExpression(
@@ -110,7 +148,8 @@ public class OrchestratorNonDurableAwaitAnalyzer : DiagnosticAnalyzer
         switch (expression)
         {
             case InvocationExpressionSyntax invocation:
-                return TryGetConfigureAwaitReceiver(invocation, out var receiver)
+                var receiver = GetConfigureAwaitReceiver(invocation);
+                return receiver != null
                     ? IsDurableExpression(receiver, model)
                     : IsDurableInvocation(invocation, model);
 
@@ -118,6 +157,9 @@ public class OrchestratorNonDurableAwaitAnalyzer : DiagnosticAnalyzer
             case MemberAccessExpressionSyntax:
                 return IsAllowedTaskProperty(expression, model)
                     || IsDurableLocal(expression, model);
+
+            case ElementAccessExpressionSyntax:
+                return DurableAnalyzerConstants.IsTaskType(model.GetTypeInfo(expression).Type);
 
             case ParenthesizedExpressionSyntax parenthesized:
                 return IsDurableExpression(parenthesized.Expression, model);
@@ -127,19 +169,15 @@ public class OrchestratorNonDurableAwaitAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private static bool TryGetConfigureAwaitReceiver(
-        InvocationExpressionSyntax invocation,
-        out ExpressionSyntax receiver)
+    private static ExpressionSyntax? GetConfigureAwaitReceiver(InvocationExpressionSyntax invocation)
     {
         if (invocation.Expression is MemberAccessExpressionSyntax memberAccess
             && memberAccess.Name.Identifier.ValueText == ConfigureAwaitMethodName)
         {
-            receiver = memberAccess.Expression;
-            return true;
+            return memberAccess.Expression;
         }
 
-        receiver = null!;
-        return false;
+        return null;
     }
 
     private static bool IsDurableInvocation(InvocationExpressionSyntax invocation, SemanticModel model)
@@ -155,7 +193,8 @@ public class OrchestratorNonDurableAwaitAnalyzer : DiagnosticAnalyzer
             return InlineTaskArgumentsAreDurable(invocation, model);
         }
 
-        return IsDurableReceiver(symbol);
+        return DurableAnalyzerConstants.IsOrchestratorMethod(symbol)
+            || IsDurableReceiver(symbol);
     }
 
     private static bool InlineTaskArgumentsAreDurable(

@@ -357,7 +357,7 @@ public class MyOrchestrator
     }
 
     [Test]
-    public async Task Should_report_non_durable_await_in_a_class_based_orchestrator()
+    public async Task Should_report_non_durable_await_in_a_method_taking_an_orchestration_context()
     {
         var source = @"
 using System.Threading.Tasks;
@@ -397,6 +397,231 @@ public class MyOrchestrator
     public async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
     {
         await Task.CompletedTask;
+    }
+}";
+
+        await Build(source).RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_await_using_a_block_over_a_non_durable_client()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+using SampleDurable.Testing;
+
+public class MyOrchestrator
+{
+    private IAgentStreamClient _client;
+
+    public async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        await using (var session = {|#0:_client.OpenSession(""go"")|})
+        {
+            await context.CallActivityAsync<string>(""Handle"");
+        }
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0016", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments(@"_client.OpenSession(""go"")"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_await_using_a_block_over_a_non_durable_expression()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+using SampleDurable.Testing;
+
+public class MyOrchestrator
+{
+    private IAgentStreamClient _client;
+
+    public async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        await using ({|#0:_client.OpenSession(""go"")|})
+        {
+            await context.CallActivityAsync<string>(""Handle"");
+        }
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0016", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments(@"_client.OpenSession(""go"")"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_await_foreach_deconstructing_a_non_durable_stream()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+using SampleDurable.Testing;
+
+public class MyOrchestrator
+{
+    private IAgentStreamClient _client;
+
+    public async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        await foreach (var (key, value) in {|#0:_client.StreamPairsAsync()|})
+        {
+            await context.CallActivityAsync<string>(""Handle"", key);
+        }
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0016", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments("_client.StreamPairsAsync()"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_once_when_an_await_using_initializer_is_awaited()
+    {
+        var source = @"
+using System;
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+using SampleDurable.Testing;
+
+public class MyOrchestrator
+{
+    private IAgentStreamClient _client;
+
+    public async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        await using var session = await {|#0:_client.OpenSessionAsync(""go"")|};
+        await context.CallActivityAsync<string>(""Handle"");
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0016", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments(@"_client.OpenSessionAsync(""go"")"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_not_report_await_on_a_helper_taking_an_orchestration_context()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public class MyOrchestrator
+{
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await RunAgent(context, ""a"");
+    }
+
+    private static Task<string> RunAgent(TaskOrchestrationContext context, string name)
+        => context.CallSubOrchestratorAsync<string>(""Agent"", name);
+}";
+
+        await Build(source).RunAsync();
+    }
+
+    [Test]
+    public async Task Should_not_report_task_when_all_over_helpers_taking_an_orchestration_context()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public class MyOrchestrator
+{
+    public async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        await Task.WhenAll(RunAgent(context, ""a""), RunAgent(context, ""b""));
+    }
+
+    private static Task<string> RunAgent(TaskOrchestrationContext context, string name)
+        => context.CallSubOrchestratorAsync<string>(""Agent"", name);
+}";
+
+        await Build(source).RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_a_non_durable_await_inside_a_context_taking_helper()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public interface IAgentClient { Task<string> DispatchAsync(); }
+
+public class MyOrchestrator
+{
+    private static IAgentClient _client;
+
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await RunAgent(context, ""a"");
+    }
+
+    private static async Task<string> RunAgent(TaskOrchestrationContext context, string name)
+        => await {|#0:_client.DispatchAsync()|};
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0016", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments("_client.DispatchAsync()"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_not_report_await_on_a_task_list_element()
+    {
+        var source = @"
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public class MyOrchestrator
+{
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        var tasks = new List<Task<string>>();
+        for (var i = 0; i < 3; i++)
+        {
+            tasks.Add(context.CallSubOrchestratorAsync<string>(""Sub"", i));
+        }
+
+        return await tasks[0];
     }
 }";
 

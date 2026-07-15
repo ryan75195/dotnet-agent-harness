@@ -74,7 +74,9 @@ namespace SampleDurable.Testing
     public interface IAgentStreamClient
     {
         IAsyncEnumerable<string> StreamAsync(string prompt);
+        IAsyncEnumerable<(string Key, string Value)> StreamPairsAsync();
         IAsyncDisposable OpenSession(string prompt);
+        Task<IAsyncDisposable> OpenSessionAsync(string prompt);
     }
 }
 ";
