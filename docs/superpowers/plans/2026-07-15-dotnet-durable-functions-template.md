@@ -18,6 +18,11 @@ These apply to **every** task. They are not repeated per-task.
 - **No comments in any C# file.** `NoCommentsAnalyzer` (CI0013) blocks `//`, `/* */`, and `///` at **error** severity. This includes the analyzer projects' own sources. Extract intent into names.
 - **`TreatWarningsAsErrors=true`, `AnalysisLevel=latest-all`.** Any CA/IDE/CS/CI/DURABLE diagnostic at error severity breaks the build. `NU1510` is exempt (`WarningsNotAsErrors`).
 - **File-scoped namespaces, Allman braces, `_camelCase` private fields, `I`-prefixed interfaces, nullable enabled.** Enforced by `.editorconfig` + `dotnet format`.
+- **No `Async` suffix on any method we declare.** `NamingConventionTests.Should_not_use_async_suffix_on_method_names` scans the `Core` **and** `Functions` assemblies for public **instance** methods ending in `Async` and fails the build for any not in its framework allowlist (`DisposeAsync`, `ExecuteAsync`, `StartAsync`, `StopAsync`). Consequences, discovered during Task 2 and binding on everything after it:
+  - Core interfaces are `IAgentDispatcher.Dispatch` and `IResultPublisher.Publish` — **not** `DispatchAsync`/`PublishAsync`.
+  - **Every function entry point is named `Run`, never `RunAsync`.** This is also the Azure Functions idiom (their own templates use `Run`); the method name is arbitrary because `[Function(name)]` carries the function's real name. Static orchestrators/triggers would technically slip past the rule (it only scans instance methods), but they use `Run` too — uniformity beats exploiting a loophole.
+  - Calling an SDK method that ends in `Async` is fine — the rule only sees methods *we declare*. `context.CallActivityAsync(...)`, `dispatcher.DispatchAsync(this)` on the SDK's `TaskEntityDispatcher`, and the Roslyn test harness's `test.RunAsync()` all stay exactly as written.
+- **Concrete public classes need a recognised role suffix.** `NamingConventionTests.AllowedSuffixes` is a fixed vocabulary; a class whose name ends in none of them fails. Task 2 added `Dispatcher` and `Publisher`; Task 3 adds `Activity`, `Orchestrator`, and `Trigger`. `Entity` already exists. Static classes compile to `abstract sealed` and are skipped by the rule, but the vocabulary must still cover them so a forker writing a non-static one isn't blocked. Extend the list in the test — never rename a domain class to satisfy it.
 - **Analyzer projects target `netstandard2.0`**; everything else targets `net10.0`. `Directory.Build.props` excludes `SampleDurable.Analyzers` from `TreatWarningsAsErrors` and from the analyzer ProjectReference (an analyzer cannot analyze itself).
 - **Package version floors:** `Microsoft.Azure.Functions.Worker` ≥ 2.50.0 (use 2.52.0), `Microsoft.Azure.Functions.Worker.Sdk` 2.0.7, `Microsoft.Azure.Functions.Worker.Extensions.DurableTask` 1.18.0. **Re-verify each against the restored package before pinning** — the numbers above were current on 2026-07-15 and are starting pins, not gospel. If a version does not resolve, use the latest stable that does and note it in the commit message.
 - **Do NOT add `Microsoft.DurableTask.Analyzers`.** The `DURABLE*` analyzers are already bundled in `Worker.Extensions.DurableTask` v1.6.0+ and enabled by default. That separate package is for the standalone Durable Task SDK and will conflict.
@@ -281,8 +286,8 @@ The external system stays stubbed behind a Core interface; nothing in this templ
   - `record AgentResult(string WorkItemId, bool Succeeded, string Output)`
   - `record AgentRunSummary(int Total, int Succeeded, int TimedOut)`
   - `record RunCounterState(int Dispatched, int Completed, int TimedOut)`
-  - `IAgentDispatcher.DispatchAsync(AgentWorkItem, CancellationToken) → Task<AgentDispatch>`
-  - `IResultPublisher.PublishAsync(AgentRunSummary, CancellationToken) → Task`
+  - `IAgentDispatcher.Dispatch(AgentWorkItem, CancellationToken) → Task<AgentDispatch>`
+  - `IResultPublisher.Publish(AgentRunSummary, CancellationToken) → Task`
   - `ServiceCollectionExtensions.AddCoreServices(IServiceCollection) → IServiceCollection`
 
 - [ ] **Step 1: Write the failing test**
@@ -305,7 +310,7 @@ public class StubAgentDispatcherTests
         var dispatcher = new StubAgentDispatcher();
         var item = new AgentWorkItem("item-7", "summarize the issue");
 
-        var dispatch = await dispatcher.DispatchAsync(item, CancellationToken.None);
+        var dispatch = await dispatcher.Dispatch(item, CancellationToken.None);
 
         using (new AssertionScope())
         {
@@ -319,8 +324,8 @@ public class StubAgentDispatcherTests
     {
         var dispatcher = new StubAgentDispatcher();
 
-        var first = await dispatcher.DispatchAsync(new AgentWorkItem("a", "p"), CancellationToken.None);
-        var second = await dispatcher.DispatchAsync(new AgentWorkItem("b", "p"), CancellationToken.None);
+        var first = await dispatcher.Dispatch(new AgentWorkItem("a", "p"), CancellationToken.None);
+        var second = await dispatcher.Dispatch(new AgentWorkItem("b", "p"), CancellationToken.None);
 
         first.DispatchId.Should().NotBe(second.DispatchId);
     }
@@ -391,7 +396,7 @@ namespace SampleDurable.Core.Interfaces;
 
 public interface IAgentDispatcher
 {
-    Task<AgentDispatch> DispatchAsync(AgentWorkItem workItem, CancellationToken cancellationToken);
+    Task<AgentDispatch> Dispatch(AgentWorkItem workItem, CancellationToken cancellationToken);
 }
 ```
 
@@ -403,7 +408,7 @@ namespace SampleDurable.Core.Interfaces;
 
 public interface IResultPublisher
 {
-    Task PublishAsync(AgentRunSummary summary, CancellationToken cancellationToken);
+    Task Publish(AgentRunSummary summary, CancellationToken cancellationToken);
 }
 ```
 
@@ -418,7 +423,7 @@ namespace SampleDurable.Core.Services;
 
 public sealed class StubAgentDispatcher : IAgentDispatcher
 {
-    public Task<AgentDispatch> DispatchAsync(AgentWorkItem workItem, CancellationToken cancellationToken)
+    public Task<AgentDispatch> Dispatch(AgentWorkItem workItem, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(workItem);
         var dispatch = new AgentDispatch($"dispatch-{workItem.Id}-{Guid.NewGuid():N}", workItem.Id);
@@ -446,7 +451,7 @@ public sealed class StubResultPublisher : IResultPublisher
         _logger = logger;
     }
 
-    public Task PublishAsync(AgentRunSummary summary, CancellationToken cancellationToken)
+    public Task Publish(AgentRunSummary summary, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(summary);
         _logger.LogInformation(
@@ -492,7 +497,7 @@ dotnet test
 ```
 Expected: build green, both new tests pass, architecture tests (including `DiRegistrationTests`) still pass.
 
-`TestCoverageAnalyzer` (CI0002) requires a test fixture per public class. If it fires on `StubResultPublisher`, add `tests/SampleDurable.Tests.Unit/Core/StubResultPublisherTests.cs` asserting `PublishAsync` completes and the logger received one Information entry (substitute `ILogger<StubResultPublisher>` with NSubstitute).
+`TestCoverageAnalyzer` (CI0002) requires a test fixture per public class. If it fires on `StubResultPublisher`, add `tests/SampleDurable.Tests.Unit/Core/StubResultPublisherTests.cs` asserting `Publish` completes and the logger received one Information entry (substitute `ILogger<StubResultPublisher>` with NSubstitute).
 
 - [ ] **Step 8: Commit**
 
@@ -516,8 +521,8 @@ git commit -m "Add durable template Core models, interfaces, and stub services"
 **Interfaces:**
 - Consumes: Task 2's `IAgentDispatcher`, `IResultPublisher`, `AgentWorkItem`, `AgentDispatch`, `AgentRunSummary`, `AddCoreServices`.
 - Produces:
-  - `DispatchAgentActivity.RunAsync([ActivityTrigger] AgentWorkItem, CancellationToken) → Task<AgentDispatch>`, `[Function(nameof(DispatchAgentActivity))]`
-  - `PublishSummaryActivity.RunAsync([ActivityTrigger] AgentRunSummary, CancellationToken) → Task`, `[Function(nameof(PublishSummaryActivity))]`
+  - `DispatchAgentActivity.Run([ActivityTrigger] AgentWorkItem, CancellationToken) → Task<AgentDispatch>`, `[Function(nameof(DispatchAgentActivity))]`
+  - `PublishSummaryActivity.Run([ActivityTrigger] AgentRunSummary, CancellationToken) → Task`, `[Function(nameof(PublishSummaryActivity))]`
 
 - [ ] **Step 1: Write the Functions csproj**
 
@@ -629,6 +634,21 @@ Then force-add it so the template ships it (it is scaffolding, not a secret — 
 git add -f dotnet/templates/durable/local.settings.json
 ```
 
+- [ ] **Step 5a: Extend the role-suffix vocabulary**
+
+`DispatchAgentActivity` and `PublishSummaryActivity` are concrete public classes (they inject dependencies, so they cannot be static). `NamingConventionTests.Should_use_recognised_role_suffix_on_concrete_classes` will reject them — `Activity` is not yet in its vocabulary.
+
+In `tests/SampleDurable.Tests.Architecture/NamingConventionTests.cs`, extend `AllowedSuffixes` with `"Activity"`, `"Orchestrator"`, and `"Trigger"`. Task 2 already appended `"Dispatcher"` and `"Publisher"`; append to the same collection:
+
+```csharp
+        "Tool", "Resource", "Prompt", "Dispatcher", "Publisher",
+        "Activity", "Orchestrator", "Trigger"
+```
+
+Add all three now even though only `Activity` is strictly required this task: Task 4's orchestrators and triggers are static classes (which the rule skips, since a static class is `abstract sealed` in IL), but a forker writing a non-static trigger would hit this wall for no reason. This mirrors what the `mcp` template did with `Tool`/`Resource`/`Prompt` — each template teaches the rule its own domain vocabulary.
+
+Extend the vocabulary; never rename a domain class to satisfy the rule.
+
 - [ ] **Step 5: Write the failing activity test**
 
 Create `tests/SampleDurable.Tests.Unit/Functions/DispatchAgentActivityTests.cs`:
@@ -651,12 +671,12 @@ public class DispatchAgentActivityTests
         var dispatcher = Substitute.For<IAgentDispatcher>();
         var item = new AgentWorkItem("item-1", "do the thing");
         dispatcher
-            .DispatchAsync(item, Arg.Any<CancellationToken>())
+            .Dispatch(item, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new AgentDispatch("dispatch-9", "item-1")));
 
         var activity = new DispatchAgentActivity(dispatcher);
 
-        var result = await activity.RunAsync(item, CancellationToken.None);
+        var result = await activity.Run(item, CancellationToken.None);
 
         result.DispatchId.Should().Be("dispatch-9");
     }
@@ -688,10 +708,10 @@ public sealed class DispatchAgentActivity
     }
 
     [Function(nameof(DispatchAgentActivity))]
-    public Task<AgentDispatch> RunAsync(
+    public Task<AgentDispatch> Run(
         [ActivityTrigger] AgentWorkItem workItem,
         CancellationToken cancellationToken)
-        => _dispatcher.DispatchAsync(workItem, cancellationToken);
+        => _dispatcher.Dispatch(workItem, cancellationToken);
 }
 ```
 
@@ -715,10 +735,10 @@ public sealed class PublishSummaryActivity
     }
 
     [Function(nameof(PublishSummaryActivity))]
-    public Task RunAsync(
+    public Task Run(
         [ActivityTrigger] AgentRunSummary summary,
         CancellationToken cancellationToken)
-        => _publisher.PublishAsync(summary, cancellationToken);
+        => _publisher.Publish(summary, cancellationToken);
 }
 ```
 
@@ -731,7 +751,7 @@ dotnet test tests/SampleDurable.Tests.Unit --filter DispatchAgentActivityTests
 ```
 Expected: PASS.
 
-Add `tests/SampleDurable.Tests.Unit/Functions/PublishSummaryActivityTests.cs` in the same shape if `TestCoverageAnalyzer` (CI0002) demands it — substitute `IResultPublisher`, call `RunAsync`, and assert `PublishAsync` received the summary via `await _publisher.Received(1).PublishAsync(summary, Arg.Any<CancellationToken>())`.
+Add `tests/SampleDurable.Tests.Unit/Functions/PublishSummaryActivityTests.cs` in the same shape if `TestCoverageAnalyzer` (CI0002) demands it — substitute `IResultPublisher`, call `Run`, and assert `Publish` received the summary via `await _publisher.Received(1).Publish(summary, Arg.Any<CancellationToken>())`.
 
 - [ ] **Step 9: Commit**
 
@@ -754,8 +774,8 @@ The sample's centre of gravity. Deliverable: the full agent-shaped loop compiles
 **Interfaces:**
 - Consumes: Task 2's models; Task 3's `DispatchAgentActivity`, `PublishSummaryActivity`.
 - Produces:
-  - `AgentRunOrchestrator.RunAsync([OrchestrationTrigger] TaskOrchestrationContext) → Task<AgentRunSummary>`
-  - `AgentTaskOrchestrator.RunAsync([OrchestrationTrigger] TaskOrchestrationContext) → Task<AgentResult>`
+  - `AgentRunOrchestrator.Run([OrchestrationTrigger] TaskOrchestrationContext) → Task<AgentRunSummary>`
+  - `AgentTaskOrchestrator.Run([OrchestrationTrigger] TaskOrchestrationContext) → Task<AgentResult>`
   - `AgentTaskOrchestrator.AgentCompletedEventName` — `const string` = `"AgentCompleted"`
   - `AgentTaskOrchestrator.DispatchTimeout` — `static readonly TimeSpan` = 2 hours
   - `RunCounterEntity` — `TaskEntity<RunCounterState>` with operations `Dispatched()`, `Completed()`, `TimedOut()`, `Get()`
@@ -782,7 +802,7 @@ public static class AgentTaskOrchestrator
     public static readonly TimeSpan DispatchTimeout = TimeSpan.FromHours(2);
 
     [Function(nameof(AgentTaskOrchestrator))]
-    public static async Task<AgentResult> RunAsync(
+    public static async Task<AgentResult> Run(
         [OrchestrationTrigger] TaskOrchestrationContext context,
         AgentWorkItem workItem)
     {
@@ -835,7 +855,7 @@ public static class AgentRunOrchestrator
     public static string SubInstanceId(string runKey, string workItemId) => $"run-{runKey}-{workItemId}";
 
     [Function(nameof(AgentRunOrchestrator))]
-    public static async Task<AgentRunSummary> RunAsync(
+    public static async Task<AgentRunSummary> Run(
         [OrchestrationTrigger] TaskOrchestrationContext context,
         AgentRunRequest request)
     {
@@ -892,7 +912,7 @@ public sealed class RunCounterEntity : TaskEntity<RunCounterState>
     public RunCounterState Get() => State;
 
     [Function(nameof(RunCounterEntity))]
-    public Task RunAsync([EntityTrigger] TaskEntityDispatcher dispatcher)
+    public Task Run([EntityTrigger] TaskEntityDispatcher dispatcher)
     {
         ArgumentNullException.ThrowIfNull(dispatcher);
         return dispatcher.DispatchAsync(this);
@@ -920,7 +940,7 @@ namespace SampleDurable.Functions.Triggers;
 public static class RunWebhookTrigger
 {
     [Function(nameof(RunWebhookTrigger))]
-    public static async Task<IActionResult> RunAsync(
+    public static async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "runs")] HttpRequest request,
         [DurableClient] DurableTaskClient client,
         [FromBody] AgentRunRequest body)
@@ -967,7 +987,7 @@ namespace SampleDurable.Functions.Triggers;
 public static class CallbackTrigger
 {
     [Function(nameof(CallbackTrigger))]
-    public static async Task<IActionResult> RunAsync(
+    public static async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "runs/{instanceId}/callback")] HttpRequest request,
         [DurableClient] DurableTaskClient client,
         string instanceId,
@@ -1002,7 +1022,7 @@ namespace SampleDurable.Functions.Triggers;
 public static class RunStatusTrigger
 {
     [Function(nameof(RunStatusTrigger))]
-    public static async Task<IActionResult> RunAsync(
+    public static async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/{instanceId}/counters")] HttpRequest request,
         [DurableClient] DurableTaskClient client,
         string instanceId)
@@ -1109,7 +1129,7 @@ public class AgentTaskOrchestratorTests
             .CreateTimer(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
-        var result = await AgentTaskOrchestrator.RunAsync(context, new AgentWorkItem("item-1", "p"));
+        var result = await AgentTaskOrchestrator.Run(context, new AgentWorkItem("item-1", "p"));
 
         using (new AssertionScope())
         {
@@ -1132,7 +1152,7 @@ public class AgentTaskOrchestratorTests
             .CreateTimer(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new TaskCompletionSource().Task);
 
-        var result = await AgentTaskOrchestrator.RunAsync(context, new AgentWorkItem("item-1", "p"));
+        var result = await AgentTaskOrchestrator.Run(context, new AgentWorkItem("item-1", "p"));
 
         using (new AssertionScope())
         {
@@ -1152,7 +1172,7 @@ public class AgentTaskOrchestratorTests
         context.CreateTimer(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new TaskCompletionSource().Task);
 
-        await AgentTaskOrchestrator.RunAsync(context, new AgentWorkItem("item-1", "p"));
+        await AgentTaskOrchestrator.Run(context, new AgentWorkItem("item-1", "p"));
 
         await context.Received(1).CallActivityAsync<AgentDispatch>(
             Arg.Is<TaskName>(n => n.Name == nameof(DispatchAgentActivity)),
@@ -1213,7 +1233,7 @@ public class AgentRunOrchestratorTests
             new AgentWorkItem("b", "p")
         ]);
 
-        var summary = await AgentRunOrchestrator.RunAsync(context, request);
+        var summary = await AgentRunOrchestrator.Run(context, request);
 
         using (new AssertionScope())
         {
@@ -1234,7 +1254,7 @@ public class AgentRunOrchestratorTests
 
         var request = new AgentRunRequest("key-1", [new AgentWorkItem("a", "p")]);
 
-        await AgentRunOrchestrator.RunAsync(context, request);
+        await AgentRunOrchestrator.Run(context, request);
 
         await context.Received(1).CallActivityAsync(
             Arg.Is<TaskName>(n => n.Name == nameof(PublishSummaryActivity)),
@@ -1283,7 +1303,7 @@ Expected: no output on the clean sample. The `DURABLE*` analyzers ship **inside*
 
 - [ ] **Step 2: Write the failing check — seed a determinism violation**
 
-Temporarily edit `AgentTaskOrchestrator.RunAsync`, replacing `context.CurrentUtcDateTime` with `DateTime.UtcNow`:
+Temporarily edit `AgentTaskOrchestrator.Run`, replacing `context.CurrentUtcDateTime` with `DateTime.UtcNow`:
 
 ```csharp
         var timeout = context.CreateTimer(DateTime.UtcNow.Add(DispatchTimeout), CancellationToken.None);
@@ -1855,7 +1875,7 @@ dotnet build --no-incremental
 ```
 Expected: green — CI0016 must **not** fire on `AgentRunOrchestrator`'s `Task.WhenAll` or `AgentTaskOrchestrator`'s `Task.WhenAny`. This is the real canary; the unit tests only approximate it.
 
-Then seed a violation — add to `AgentTaskOrchestrator.RunAsync`:
+Then seed a violation — add to `AgentTaskOrchestrator.Run`:
 ```csharp
         await Task.Yield();
 ```
