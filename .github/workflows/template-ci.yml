@@ -31,6 +31,18 @@ jobs:
           npm install -g azurite
           npm install -g azure-functions-core-tools@4
 
+          # The integration fixture starts Core Tools with Process.Start("func") and
+          # UseShellExecute=false, so CreateProcess only ever appends .exe when searching
+          # PATH. npm's global bin holds func/func.cmd/func.ps1 shims but no func.exe, and
+          # the tests fail with "The system cannot find the file specified". Put the
+          # package's real func.exe on PATH for the later steps.
+          $funcBin = Join-Path (npm root -g) 'azure-functions-core-tools\bin'
+          if (-not (Test-Path (Join-Path $funcBin 'func.exe'))) {
+            Write-Host "func.exe not found under $funcBin"
+            exit 1
+          }
+          Add-Content -Path $env:GITHUB_PATH -Value $funcBin
+
       - name: Install templates from current source
         run: dotnet new install .
 
