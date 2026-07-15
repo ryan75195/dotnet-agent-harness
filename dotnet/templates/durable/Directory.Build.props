@@ -1,0 +1,20 @@
+﻿<Project>
+  <!-- All properties scoped to non-analyser projects -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'SampleDurable.Analyzers'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <!-- Required for IDE0005 (remove unnecessary usings) to work in build -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- NU1510: NuGet pruning suggestion â€” not a code quality issue -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1510</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <!-- Custom analyser â€” runs on all projects except the analyser itself -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'SampleDurable.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src\SampleDurable.Analyzers\SampleDurable.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

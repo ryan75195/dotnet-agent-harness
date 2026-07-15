@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SampleDurable.Analyzers/SampleDurable.Analyzers.csproj" />
+    <Project Path="src/SampleDurable.Functions/SampleDurable.Functions.csproj" />
+    <Project Path="src/SampleDurable.Core/SampleDurable.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SampleDurable.Tests.Analyzers/SampleDurable.Tests.Analyzers.csproj" />
+    <Project Path="tests/SampleDurable.Tests.Architecture/SampleDurable.Tests.Architecture.csproj" />
+    <Project Path="tests/SampleDurable.Tests.Integration/SampleDurable.Tests.Integration.csproj" />
+    <Project Path="tests/SampleDurable.Tests.Unit/SampleDurable.Tests.Unit.csproj" />
+  </Folder>
+</Solution>
