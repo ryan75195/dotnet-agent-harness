@@ -35,3 +35,9 @@ $stray = Join-Path (Get-Location) 'MyApp'
 if (Test-Path $stray) { throw "dry-run/validation created a directory ($stray) - it must not" }
 
 Write-Host 'dispatcher-args-tests: passed'
+
+# The cases above deliberately run new-project.ps1 to a non-zero exit, so $LASTEXITCODE
+# is 2 when the script ends. Under CI's `pwsh -command ". script.ps1"` that leaks into
+# pwsh's exit code and fails the step despite every assertion passing. Exit explicitly.
+# Any real failure throws under $ErrorActionPreference = 'Stop' and never reaches here.
+exit 0
