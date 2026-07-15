@@ -284,14 +284,24 @@ copied.
 - **`Tests.Unit`** — orchestrator logic against a substituted
   `TaskOrchestrationContext` (an abstract class, so NSubstitute can substitute it).
 
-  **The gotcha the template must encode:** only the three-argument
-  `CallActivityAsync<T>(TaskName, object?, TaskOptions?)` is `abstract`. The
-  convenient string overloads are **extension methods and cannot be substituted**.
-  Calls must be matched as
-  `Arg.Is<TaskName>(n => n.Name == nameof(DispatchAgentActivity))` with
-  `Arg.Any<TaskOptions>()` for the third parameter. Getting this wrong is the
-  single most common way durable unit tests fail confusingly, so the sample tests
-  demonstrate the correct form rather than leaving the forker to discover it.
+  **The gotcha the template must encode:** `CallActivityAsync` does not take a
+  `string` — it takes a **`TaskName` struct** with an implicit conversion from
+  string. So the call site reads like a string but the substitution must match
+  `Arg.Is<TaskName>(n => n.Name == nameof(DispatchAgentActivity))`, with
+  `Arg.Any<TaskOptions>()` for the options parameter. Matching a raw string does
+  not work. Getting this wrong is the most common way durable unit tests fail
+  confusingly, so the sample tests demonstrate the correct form rather than
+  leaving the forker to discover it.
+
+  **Corrected 2026-07-15 during Task 5.** An earlier draft of this spec claimed
+  the convenient overloads were "extension methods and cannot be substituted."
+  That is false, and it came from an unverified research claim. Reflection over
+  `Microsoft.DurableTask.Abstractions` 1.24.1 shows `TaskOrchestrationContext`
+  declares all four `CallActivityAsync` overloads **on the type itself**, all
+  `virtual` (the three-argument generic one additionally `abstract`) — so
+  NSubstitute handles every one of them, and no hand-written test double is
+  needed. The `TaskName` matching requirement above is the real constraint and is
+  the only one the template should teach.
 
   Covers: the timer-vs-event race (both branches), fan-out aggregation, and the
   deterministic instance ID.

@@ -1190,7 +1190,9 @@ public class AgentTaskOrchestratorTests
 
 Add `using FluentAssertions.Execution;`.
 
-**The gotcha, stated once so every later fixture inherits it:** only the three-argument `CallActivityAsync<T>(TaskName, object?, TaskOptions?)` is `abstract` and therefore substitutable. The convenient string overloads are **extension methods** and cannot be substituted — stubbing them silently does nothing and the test fails with a confusing null. Always match `Arg.Is<TaskName>(n => n.Name == nameof(X))` and supply `Arg.Any<TaskOptions>()` for the third parameter. Microsoft's docs show this in xUnit + Moq form; this is the NSubstitute translation.
+**The gotcha, stated once so every later fixture inherits it:** `CallActivityAsync` does not take a `string` — it takes a **`TaskName` struct** with an implicit conversion from string. The call site reads like a string, but a substitution matching a raw string will never match. Always use `Arg.Is<TaskName>(n => n.Name == nameof(X))`, and supply `Arg.Any<TaskOptions>()` for the options parameter. Microsoft's docs show this in xUnit + Moq form; this is the NSubstitute translation.
+
+**Corrected during Task 5 — an earlier draft of this plan was wrong here.** It claimed the convenient overloads were "extension methods and cannot be substituted." Reflection over `Microsoft.DurableTask.Abstractions` 1.24.1 disproves it: `TaskOrchestrationContext` declares all four `CallActivityAsync` overloads **on the type itself**, every one `virtual` (the three-argument generic one additionally `abstract`). NSubstitute substitutes all of them, and `TaskOrchestrationEntityFeature` too — no hand-written double is needed. Do not reintroduce the extension-method claim into any doc; `TaskName` matching is the only real constraint here.
 
 - [ ] **Step 3: Run tests to verify they fail**
 
