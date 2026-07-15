@@ -30,13 +30,59 @@ jobs:
         run: |
           npm install -g azurite
           npm install -g azure-functions-core-tools@4
-          Start-Process azurite -ArgumentList '--silent','--inMemoryPersistence','--skipApiVersionCheck','--location',"$env:RUNNER_TEMP\azurite"
-          $deadline = (Get-Date).AddMinutes(1)
-          while ((Get-Date) -lt $deadline) {
-            if (Test-NetConnection -ComputerName localhost -Port 10002 -InformationLevel Quiet) { exit 0 }
-            Start-Sleep -Seconds 2
+
+          $out = "$env:RUNNER_TEMP\azurite.out.log"
+          $err = "$env:RUNNER_TEMP\azurite.err.log"
+
+          function Show-AzuriteLog {
+            Write-Host '--- azurite stdout ---'
+            if (Test-Path $out) { Get-Content $out -Tail 40 }
+            Write-Host '--- azurite stderr ---'
+            if (Test-Path $err) { Get-Content $err -Tail 40 }
           }
-          Write-Error "Azurite did not open the table port (10002) within 1 minute"
+
+          # Redirecting output makes Start-Process launch without ShellExecute, which skips
+          # PATHEXT resolution and would pick npm's extensionless Unix shim ("%1 is not a
+          # valid Win32 application"). Resolve the .cmd shim explicitly.
+          $azurite = (Get-Command azurite.cmd -ErrorAction SilentlyContinue).Source
+          if (-not $azurite) {
+            Write-Host 'azurite.cmd is not on PATH after npm install -g azurite.'
+            exit 1
+          }
+
+          # --inMemoryPersistence is mutually exclusive with --location: together Azurite
+          # exits at once with "The --inMemoryPersistence option is not supported when the
+          # --location option is set." --skipApiVersionCheck absorbs the skew between the
+          # Azure.Storage SDK the DurableTask extension pulls and the API versions Azurite
+          # declares, which otherwise fails the run with "The API version ... is not
+          # supported by Azurite".
+          $proc = Start-Process -FilePath $azurite -ArgumentList '--silent','--inMemoryPersistence','--skipApiVersionCheck' -PassThru -NoNewWindow -RedirectStandardOutput $out -RedirectStandardError $err
+
+          # Durable state lives in tables, so probe 10002. Blob (10000) alone would come up
+          # while durable still fails.
+          $deadline = (Get-Date).AddMinutes(2)
+          while ((Get-Date) -lt $deadline) {
+            if ($proc.HasExited) {
+              # Start-Process -PassThru leaves ExitCode null for the .cmd shim, so only
+              # report it when it survived. The captured stderr carries the real reason.
+              $code = $proc.ExitCode
+              if ($null -ne $code) { Write-Host "Azurite exited early with code $code." }
+              else { Write-Host 'Azurite exited early.' }
+              Show-AzuriteLog
+              exit 1
+            }
+            $client = New-Object System.Net.Sockets.TcpClient
+            try {
+              $client.Connect('127.0.0.1', 10002)
+              Write-Host 'Azurite is listening on the table port (10002).'
+              exit 0
+            }
+            catch { Start-Sleep -Seconds 1 }
+            finally { $client.Dispose() }
+          }
+
+          Write-Host 'Azurite did not open the table port (10002) within 2 minutes.'
+          Show-AzuriteLog
           exit 1
 
       - name: Install templates from current source
