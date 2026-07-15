@@ -37,6 +37,7 @@ appsettings.local.json
 appsettings.*.local.json
 *.pfx
 *.key
+local.settings.json
 
 ## Frontend
 .vite/

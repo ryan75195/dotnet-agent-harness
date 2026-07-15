@@ -34,6 +34,7 @@ public class CodeStructureTests
                 && !t.Name.EndsWith("Extensions", StringComparison.Ordinal)
                 && !TestHelpers.IsRecord(t)
                 && !TestHelpers.IsDbContext(t)
+                && !TestHelpers.IsGeneratedCode(t)
                 && t.Namespace?.Contains(".Entities", StringComparison.Ordinal) != true
                 && t.Name is not "Program" and not "AssemblyMarker")
             .ToList();

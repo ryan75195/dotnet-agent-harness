@@ -24,7 +24,8 @@ public class NamingConventionTests
         "Entity", "Command", "Parser", "Converter", "Pool",
         "Worker", "Process", "Extensions", "Mapper", "Extractor",
         "Probe", "Result", "Monitor", "Plugin", "Filter",
-        "Tool", "Resource", "Prompt", "Dispatcher", "Publisher"
+        "Tool", "Resource", "Prompt", "Dispatcher", "Publisher",
+        "Activity", "Orchestrator", "Trigger"
     ];
 
     [Test]
@@ -149,7 +150,7 @@ public class NamingConventionTests
 
         var violations = assemblies
             .SelectMany(a => a.GetTypes())
-            .Where(t => t.IsPublic)
+            .Where(t => t.IsPublic && !TestHelpers.IsGeneratedCode(t))
             .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             .Where(m => m.Name.EndsWith("Async", StringComparison.Ordinal)
                 && !FrameworkAsyncMethods.Contains(m.Name))
@@ -173,6 +174,7 @@ public class NamingConventionTests
                 && !t.IsAbstract
                 && !TestHelpers.IsRecord(t)
                 && !TestHelpers.IsDbContext(t)
+                && !TestHelpers.IsGeneratedCode(t)
                 && !t.Name.StartsWith('<')
                 && t.Name != "Program")
             .ToList();

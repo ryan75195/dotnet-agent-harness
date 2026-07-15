@@ -1,10 +1,14 @@
-﻿using System.Reflection;
+﻿using System.CodeDom.Compiler;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 
 namespace SampleDurable.Tests.Architecture;
 
 internal static class TestHelpers
 {
+    public static bool IsGeneratedCode(Type type) =>
+        type.GetCustomAttribute<GeneratedCodeAttribute>() != null;
+
     public static Assembly CoreAssembly => typeof(Core.AssemblyMarker).Assembly;
     public static Assembly FunctionsAssembly => typeof(Functions.AssemblyMarker).Assembly;
 
