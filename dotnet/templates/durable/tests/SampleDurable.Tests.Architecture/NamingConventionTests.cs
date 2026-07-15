@@ -24,7 +24,7 @@ public class NamingConventionTests
         "Entity", "Command", "Parser", "Converter", "Pool",
         "Worker", "Process", "Extensions", "Mapper", "Extractor",
         "Probe", "Result", "Monitor", "Plugin", "Filter",
-        "Tool", "Resource", "Prompt"
+        "Tool", "Resource", "Prompt", "Dispatcher", "Publisher"
     ];
 
     [Test]
