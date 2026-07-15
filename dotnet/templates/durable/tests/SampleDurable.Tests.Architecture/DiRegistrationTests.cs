@@ -11,6 +11,7 @@ public class DiRegistrationTests
     public void Should_register_every_public_core_interface_in_add_core_services()
     {
         var services = new ServiceCollection();
+        services.AddLogging();
         services.AddCoreServices();
         var provider = services.BuildServiceProvider();
 
