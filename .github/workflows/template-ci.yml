@@ -10,13 +10,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        template: [cli, etl-api, mcp]
+        template: [cli, durable, etl-api, mcp]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v4
+        if: matrix.template == 'durable'
+        with:
+          node-version: '22'
+
+      - name: Install Azurite and Functions Core Tools
+        if: matrix.template == 'durable'
+        shell: pwsh
+        run: |
+          npm install -g azurite
+          npm install -g azure-functions-core-tools@4
+          Start-Process azurite -ArgumentList '--silent','--inMemoryPersistence','--skipApiVersionCheck','--location',"$env:RUNNER_TEMP\azurite"
+          $deadline = (Get-Date).AddMinutes(1)
+          while ((Get-Date) -lt $deadline) {
+            if (Test-NetConnection -ComputerName localhost -Port 10002 -InformationLevel Quiet) { exit 0 }
+            Start-Sleep -Seconds 2
+          }
+          Write-Error "Azurite did not open the table port (10002) within 1 minute"
+          exit 1
 
       - name: Install templates from current source
         run: dotnet new install .
