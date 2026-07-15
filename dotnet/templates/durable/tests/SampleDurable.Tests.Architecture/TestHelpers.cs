@@ -32,4 +32,17 @@ internal static class TestHelpers
 
     public static bool IsDbContext(Type type) =>
         typeof(DbContext).IsAssignableFrom(type);
+
+    public static readonly (string Attribute, string Namespace)[] TriggerNamespaces =
+    [
+        ("OrchestrationTriggerAttribute", "Orchestrations"),
+        ("ActivityTriggerAttribute", "Activities"),
+        ("EntityTriggerAttribute", "Entities"),
+        ("HttpTriggerAttribute", "Triggers")
+    ];
+
+    public static IEnumerable<MethodInfo> FunctionMethods() =>
+        FunctionsAssembly.GetTypes()
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            .Where(m => m.GetCustomAttributes().Any(a => a.GetType().Name == "FunctionAttribute"));
 }
