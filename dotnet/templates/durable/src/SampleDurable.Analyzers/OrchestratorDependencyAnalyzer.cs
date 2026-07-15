@@ -28,14 +28,17 @@ public class OrchestratorDependencyAnalyzer : DiagnosticAnalyzer
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterSyntaxNodeAction(AnalyzeClass, SyntaxKind.ClassDeclaration);
+        context.RegisterSyntaxNodeAction(
+            AnalyzeType,
+            SyntaxKind.ClassDeclaration,
+            SyntaxKind.RecordDeclaration);
     }
 
-    private static void AnalyzeClass(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeType(SyntaxNodeAnalysisContext context)
     {
-        var classDeclaration = (ClassDeclarationSyntax)context.Node;
+        var typeDeclaration = (TypeDeclarationSyntax)context.Node;
 
-        var symbol = context.SemanticModel.GetDeclaredSymbol(classDeclaration);
+        var symbol = context.SemanticModel.GetDeclaredSymbol(typeDeclaration);
         if (symbol == null || !DeclaresOrchestrator(symbol))
         {
             return;
@@ -47,7 +50,7 @@ public class OrchestratorDependencyAnalyzer : DiagnosticAnalyzer
         }
 
         context.ReportDiagnostic(
-            Diagnostic.Create(Rule, classDeclaration.Identifier.GetLocation(), symbol.Name));
+            Diagnostic.Create(Rule, typeDeclaration.Identifier.GetLocation(), symbol.Name));
     }
 
     private static bool DeclaresOrchestrator(INamedTypeSymbol symbol) =>
@@ -57,17 +60,45 @@ public class OrchestratorDependencyAnalyzer : DiagnosticAnalyzer
 
     private static bool HasInstanceState(INamedTypeSymbol symbol)
     {
-        var hasInstanceField = symbol.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Any(f => !f.IsStatic && !f.IsConst && !f.IsImplicitlyDeclared);
-
-        var hasInstanceProperty = symbol.GetMembers()
-            .OfType<IPropertySymbol>()
-            .Any(p => !p.IsStatic);
+        if (HasOwnInstanceState(symbol, includePrivate: true))
+        {
+            return true;
+        }
 
         var hasConstructorParameters = symbol.InstanceConstructors
             .Any(c => !c.IsImplicitlyDeclared && c.Parameters.Length > 0);
 
-        return hasInstanceField || hasInstanceProperty || hasConstructorParameters;
+        if (hasConstructorParameters)
+        {
+            return true;
+        }
+
+        var baseType = symbol.BaseType;
+        while (baseType != null && baseType.SpecialType != SpecialType.System_Object)
+        {
+            if (HasOwnInstanceState(baseType, includePrivate: false))
+            {
+                return true;
+            }
+
+            baseType = baseType.BaseType;
+        }
+
+        return false;
+    }
+
+    private static bool HasOwnInstanceState(INamedTypeSymbol symbol, bool includePrivate)
+    {
+        var hasInstanceField = symbol.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Any(f => !f.IsStatic && !f.IsConst && !f.IsImplicitlyDeclared
+                && (includePrivate || f.DeclaredAccessibility != Accessibility.Private));
+
+        var hasInstanceProperty = symbol.GetMembers()
+            .OfType<IPropertySymbol>()
+            .Any(p => !p.IsStatic && !p.IsImplicitlyDeclared
+                && (includePrivate || p.DeclaredAccessibility != Accessibility.Private));
+
+        return hasInstanceField || hasInstanceProperty;
     }
 }

@@ -144,4 +144,145 @@ public class {|#0:MyOrchestratorHelper|}
 
         await test.RunAsync();
     }
+
+    [Test]
+    public async Task Should_report_orchestrator_class_with_inherited_protected_field()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public interface IAgentClient { }
+
+public abstract class OrchestratorBase
+{
+    protected IAgentClient _client;
+}
+
+public class {|#0:MyOrchestrator|} : OrchestratorBase
+{
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0017", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments("MyOrchestrator"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_not_report_orchestrator_class_with_private_base_field()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public interface IAgentClient { }
+
+public abstract class OrchestratorBase
+{
+    private IAgentClient _client;
+}
+
+public class MyOrchestrator : OrchestratorBase
+{
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        await Build(source).RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_record_orchestrator_with_primary_constructor()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public interface IAgentClient { }
+
+public record {|#0:MyOrchestrator|}(IAgentClient Client)
+{
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0017", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments("MyOrchestrator"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_not_report_stateless_record_orchestrator()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public record MyOrchestrator
+{
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        await Build(source).RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_orchestrator_class_with_constructor_parameter_and_no_field()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public interface IAgentClient { }
+
+public static class AgentClientRegistry
+{
+    public static void Register(IAgentClient client) { }
+}
+
+public class {|#0:MyOrchestrator|}
+{
+    public MyOrchestrator(IAgentClient client)
+    {
+        AgentClientRegistry.Register(client);
+    }
+
+    public async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0017", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments("MyOrchestrator"));
+
+        await test.RunAsync();
+    }
 }

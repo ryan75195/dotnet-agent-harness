@@ -65,6 +65,13 @@ namespace Microsoft.DurableTask
     }
 }
 
+namespace System.Runtime.CompilerServices
+{
+    public static class IsExternalInit
+    {
+    }
+}
+
 namespace SampleDurable.Testing
 {
     using System;
