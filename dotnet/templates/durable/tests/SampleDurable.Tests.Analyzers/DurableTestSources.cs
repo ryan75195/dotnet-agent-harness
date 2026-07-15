@@ -58,6 +58,24 @@ namespace Microsoft.DurableTask
         public abstract Task CreateTimer(DateTime fireAt, CancellationToken cancellationToken);
         public abstract Guid NewGuid();
     }
+
+    public abstract class TaskOrchestrator<TInput, TOutput>
+    {
+        public abstract Task<TOutput> RunAsync(TaskOrchestrationContext context, TInput input);
+    }
+}
+
+namespace SampleDurable.Testing
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+
+    public interface IAgentStreamClient
+    {
+        IAsyncEnumerable<string> StreamAsync(string prompt);
+        IAsyncDisposable OpenSession(string prompt);
+    }
 }
 ";
 }

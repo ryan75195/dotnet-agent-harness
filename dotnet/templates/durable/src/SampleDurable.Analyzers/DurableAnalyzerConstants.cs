@@ -14,6 +14,10 @@ internal static class DurableAnalyzerConstants
 
     internal const string DurableNamespacePrefix = "Microsoft.DurableTask";
 
+    internal const string TaskType = "System.Threading.Tasks.Task";
+
+    internal const string TaskOfTType = "System.Threading.Tasks.Task<TResult>";
+
     internal static bool IsOrchestratorMethod(IMethodSymbol? method)
     {
         if (method == null)
@@ -21,7 +25,14 @@ internal static class DurableAnalyzerConstants
             return false;
         }
 
-        return method.Parameters.Any(HasOrchestrationTrigger);
+        return method.Parameters.Any(HasOrchestrationTrigger)
+            || method.Parameters.Any(p => IsOrchestrationContext(p.Type));
+    }
+
+    internal static bool IsTaskType(ITypeSymbol? type)
+    {
+        var definition = type?.OriginalDefinition?.ToDisplayString();
+        return definition == TaskType || definition == TaskOfTType;
     }
 
     private static bool HasOrchestrationTrigger(IParameterSymbol parameter) =>
