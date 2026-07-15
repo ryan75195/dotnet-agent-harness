@@ -128,6 +128,25 @@ dotnet_diagnostic.IDE0130.severity = error
 
 dotnet_diagnostic.CA1001.severity = error
 
+# Durable Functions orchestrator determinism (shipped inside
+# Microsoft.Azure.Functions.Worker.Extensions.DurableTask v1.6.0+, on by
+# default at Warning; pinned to error so intent survives someone relaxing
+# TreatWarningsAsErrors). DURABLE0009 (prefer input parameter over
+# GetInput<T>()) is deliberately excluded — style, not correctness.
+# DURABLE1001-1003 are Error by default and need no pin.
+dotnet_diagnostic.DURABLE0001.severity = error
+dotnet_diagnostic.DURABLE0002.severity = error
+dotnet_diagnostic.DURABLE0003.severity = error
+dotnet_diagnostic.DURABLE0004.severity = error
+dotnet_diagnostic.DURABLE0005.severity = error
+dotnet_diagnostic.DURABLE0006.severity = error
+dotnet_diagnostic.DURABLE0007.severity = error
+dotnet_diagnostic.DURABLE0008.severity = error
+dotnet_diagnostic.DURABLE0010.severity = error
+dotnet_diagnostic.DURABLE0011.severity = error
+dotnet_diagnostic.DURABLE2003.severity = error
+dotnet_diagnostic.DURABLE2004.severity = error
+
 # === Suppressed rules — noise, not Clean Code ===
 
 # Localisation / IFormatProvider
