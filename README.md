@@ -104,9 +104,10 @@ checks for the Expo template.
 .\dotnet\template-tests\scaffold-and-build.ps1 cli
 .\dotnet\template-tests\scaffold-and-build.ps1 etl-api
 .\dotnet\template-tests\scaffold-and-build.ps1 mcp
+.\dotnet\template-tests\scaffold-and-build.ps1 durable
 .\expo\template-tests\scaffold-and-validate.ps1
 ```
 
-`scaffold-and-build.ps1` doesn't cover `durable` yet; see
-[`dotnet/README.md`](dotnet/README.md#development) for how to verify it
-locally (or push and watch CI, which does exercise it).
+See [`dotnet/README.md`](dotnet/README.md#development) for what the
+`durable` leg covers by default and how to exercise its Integration tests
+locally.
