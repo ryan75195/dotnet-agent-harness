@@ -114,6 +114,21 @@ This harness repo doesn't have its own pre-commit hooks (those only fire in scaf
 .\dotnet\template-tests\scaffold-and-build.ps1 etl-api
 .\dotnet\template-tests\scaffold-and-build.ps1 mcp
 .\dotnet\template-tests\scaffold-and-build.ps1 durable
+.\dotnet\template-tests\analyzer-drift.ps1
 ```
+
+`analyzer-drift.ps1` is the one gate that looks *across* templates rather than
+inside one. Each template ships its own copy of the shared analyzer suite — that
+duplication is deliberate, since a scaffolded project owns its guardrails and
+depends on nothing — but it means a fix applied to one template silently stays
+broken in the other three. That has already happened once: the `<Clone>$`
+exclusion in `AnalyzerConstants` (without it, CI0002 demands test coverage of a
+record's compiler-generated clone method — a diagnostic nobody can satisfy) was
+fixed in `cli` and stranded there. The gate normalises the root namespace, the
+one thing that legitimately differs, and fails on anything else. Rules unique to
+a template (durable's CI0016–CI0018) are reported and skipped.
+
+**When you change a shared analyzer, change it in all four.** The gate is what
+tells you that you didn't.
 
 Each invocation installs the chosen template, scaffolds a smoke project into `$env:TEMP`, builds it, and uninstalls. For `cli`/`etl-api`/`mcp` it runs all four test projects. For `durable` it runs only Unit/Architecture/Analyzers — the same scope as the pre-commit hook and the `new-project` `dotnet-durable` handler's `Verify` step — because Integration needs Azurite and Azure Functions Core Tools v4 reachable, and this smoke test must pass with neither installed. To exercise Integration too, install Azurite (`npm install -g azurite`) and Core Tools (`npm install -g azure-functions-core-tools@4`), start Azurite (`azurite --silent --inMemoryPersistence --skipApiVersionCheck` — note `--inMemoryPersistence` and `--location` are mutually exclusive), and run `dotnet test` inside a scaffolded `durable` project, or push and watch the durable CI job, which exercises it on every push.
