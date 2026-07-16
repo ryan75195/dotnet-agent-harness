@@ -51,8 +51,9 @@ dotnet test
 ```
 
 `dotnet test` runs all four test projects. `Tests.Unit`, `Tests.Architecture`, and
-`Tests.Analyzers` need nothing extra. `Tests.Integration` needs Azurite and the Functions host
-running — see below.
+`Tests.Analyzers` need nothing extra. `Tests.Integration` needs **Azurite running** and **`func`
+on `PATH`** — it does not need you to start the host yourself, because `FunctionHostFixture`
+starts and stops one for you. See below.
 
 ## Run locally
 
@@ -78,25 +79,50 @@ Do not add `--csharp` — it forces the in-process worker model and silently ove
 template's isolated-worker configuration. An npm-installed Azure Functions Core Tools works
 fine; nothing extra is needed to put `func` on `PATH` for the integration tests either.
 
-Once running, start a workflow:
+Once running, start a workflow (these use `curl.exe`, not `curl` — in PowerShell 5.1 `curl` is
+an alias for `Invoke-WebRequest`, which rejects `-X`/`-H`/`-d`):
 
 ```powershell
-curl -X POST http://localhost:7071/api/runs -H "Content-Type: application/json" `
+curl.exe -X POST http://localhost:7071/api/runs -H "Content-Type: application/json" `
   -d '{"runKey":"demo","items":[{"id":"item-1","prompt":"say hello"}]}'
 ```
 
-then complete a work item's callback (substitute the `instanceId` the previous call returned):
+That returns the **parent** instance ID:
+
+```json
+{"instanceId":"run-demo"}
+```
+
+The callback does **not** go to that ID. `AgentRunOrchestrator` fans out one
+`AgentTaskOrchestrator` sub-orchestration per work item, and it is the *sub-orchestration* that
+parks on `WaitForExternalEvent` — the parent only waits on its children. Each sub-orchestration
+gets a deterministic instance ID from `AgentRunOrchestrator.SubInstanceId`, shaped
+`run-{RunKey}-{workItemId}`, so `item-1` of run `demo` is **`run-demo-item-1`**.
+
+That determinism is the headline feature, not an implementation detail: an external agent can
+address the exact waiter it needs to wake from just the run key and the work item ID — no lookup
+table, no ID plumbed back to it. Raise the event on the parent instead and nothing happens: the
+parent ignores the event, `CallbackTrigger` still returns `202 Accepted`, and the run sits until
+the two-hour `DispatchTimeout` fires.
 
 ```powershell
-curl -X POST http://localhost:7071/api/runs/<instanceId>/callback -H "Content-Type: application/json" `
+curl.exe -X POST http://localhost:7071/api/runs/run-demo-item-1/callback -H "Content-Type: application/json" `
   -d '{"workItemId":"item-1","succeeded":true,"output":"done"}'
 ```
 
-and check progress:
+and check progress — `RunCounterEntity` is keyed on the sub-orchestration's instance ID too:
 
 ```powershell
-curl http://localhost:7071/api/runs/<instanceId>/counters
+curl.exe http://localhost:7071/api/runs/run-demo-item-1/counters
 ```
+
+```json
+{"dispatched":1,"completed":1,"timedOut":0}
+```
+
+Once a run reaches a terminal state, POSTing the same `runKey` again starts a fresh run on the
+same instance ID. While it is still in flight, the same POST returns
+`{"instanceId":"run-demo","status":"already running"}` instead of starting a duplicate.
 
 ## Guardrails
 
