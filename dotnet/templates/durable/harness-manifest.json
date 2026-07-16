@@ -5,7 +5,7 @@
     ".editorconfig",
     "tests/.editorconfig",
     "Directory.Build.props",
-    "host.json",
+    "src/SampleDurable.Functions/host.json",
     "src/SampleDurable.Analyzers/**",
     "CLAUDE.md",
     "harness-manifest.json"
