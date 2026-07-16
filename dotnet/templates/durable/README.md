@@ -140,6 +140,34 @@ Storage needs nothing beyond Azurite (a plain npm package), which is why it's th
 DTS once you're ready to run it against a real scheduler instance, or if you're comfortable adding
 Docker to your local and CI setup for the emulator.
 
+## Authentication
+
+All three HTTP triggers — `RunWebhookTrigger` (`POST /api/runs`), `CallbackTrigger`
+(`POST /api/runs/{instanceId}/callback`), and `RunStatusTrigger`
+(`GET /api/runs/{instanceId}/counters`) — are **`AuthorizationLevel.Anonymous`**: unauthenticated
+by design, so local development and the integration tests can call them without a key. That's
+fine for those two cases. It is not fine exposed as-is.
+
+The callback route is the sharp edge. It completes a parked run, and instance IDs are
+deterministic on purpose (`run-{RunKey}`, `run-{RunKey}-{workItemId}`) — a real callback URL has
+to name the sub-orchestration it's resolving, so this is correct, not a bug. But it also means
+those IDs are guessable. Left anonymous, anyone who can reach the app can resolve someone else's
+parked run with a result of their choosing, not just start new ones.
+
+Before exposing this beyond localhost, pick one:
+
+- **`AuthorizationLevel.Function`** — the simplest change: a host or function key on the URL.
+  The most likely fit if the caller is a known system invoking a webhook.
+- **Platform auth** — App Service Authentication ("Easy Auth") in front of the app, so the
+  platform rejects unauthenticated requests before they reach the trigger.
+- **Signature verification** — if this is genuinely a third-party webhook (GitHub-style), verify
+  the sender's signature (an HMAC over the raw request body) inside the trigger instead of
+  relying on a shared secret in the URL. This is also a real reason to read the raw body rather
+  than bind straight to a typed model, since the signature is computed over the exact bytes sent.
+
+Whichever option you pick, it's a one-line change: swap the `AuthorizationLevel` argument in the
+`[HttpTrigger]` attribute on each trigger under `src/SampleDurable.Functions/Triggers/`.
+
 ## Development lifecycle
 
 See [CLAUDE.md](./CLAUDE.md) for the full lifecycle (issue → branch → commit → PR).
