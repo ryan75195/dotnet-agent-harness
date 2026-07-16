@@ -62,4 +62,52 @@ public class RunWebhookTriggerTests
             Arg.Any<TaskName>(), Arg.Any<object>(), Arg.Any<StartOrchestrationOptions>());
         result.Should().BeOfType<OkObjectResult>();
     }
+
+    [TestCase(OrchestrationRuntimeStatus.Completed)]
+    [TestCase(OrchestrationRuntimeStatus.Failed)]
+    [TestCase(OrchestrationRuntimeStatus.Terminated)]
+    public async Task Should_start_a_fresh_run_when_the_previous_run_reached_a_terminal_state(
+        OrchestrationRuntimeStatus terminalStatus)
+    {
+        var client = Substitute.For<DurableTaskClient>("test");
+        var existing = new OrchestrationMetadata("AgentRunOrchestrator", "run-run-key-1")
+        {
+            RuntimeStatus = terminalStatus,
+        };
+        client.GetInstanceAsync("run-run-key-1", Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(existing);
+        var body = new AgentRunRequest("run-key-1", [new AgentWorkItem("item-1", "do the thing")]);
+        var request = CreateJsonRequest(body);
+
+        var result = await RunWebhookTrigger.Run(request, client);
+
+        await client.Received(1).ScheduleNewOrchestrationInstanceAsync(
+            "AgentRunOrchestrator",
+            Arg.Any<AgentRunRequest>(),
+            Arg.Is<StartOrchestrationOptions>(o => o.InstanceId == "run-run-key-1"));
+        result.Should().BeOfType<OkObjectResult>();
+    }
+
+    [TestCase(OrchestrationRuntimeStatus.Running)]
+    [TestCase(OrchestrationRuntimeStatus.Pending)]
+    [TestCase(OrchestrationRuntimeStatus.Suspended)]
+    public async Task Should_not_schedule_a_duplicate_while_the_existing_run_is_still_in_flight(
+        OrchestrationRuntimeStatus inFlightStatus)
+    {
+        var client = Substitute.For<DurableTaskClient>("test");
+        var existing = new OrchestrationMetadata("AgentRunOrchestrator", "run-run-key-1")
+        {
+            RuntimeStatus = inFlightStatus,
+        };
+        client.GetInstanceAsync("run-run-key-1", Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(existing);
+        var body = new AgentRunRequest("run-key-1", [new AgentWorkItem("item-1", "do the thing")]);
+        var request = CreateJsonRequest(body);
+
+        var result = await RunWebhookTrigger.Run(request, client);
+
+        await client.DidNotReceive().ScheduleNewOrchestrationInstanceAsync(
+            Arg.Any<TaskName>(), Arg.Any<object>(), Arg.Any<StartOrchestrationOptions>());
+        result.Should().BeOfType<OkObjectResult>();
+    }
 }

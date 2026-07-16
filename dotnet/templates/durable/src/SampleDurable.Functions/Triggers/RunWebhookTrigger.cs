@@ -24,7 +24,7 @@ public static class RunWebhookTrigger
         var instanceId = $"run-{body.RunKey}";
 
         var existing = await client.GetInstanceAsync(instanceId);
-        if (existing is not null)
+        if (existing is not null && IsStillInFlight(existing))
         {
             return new OkObjectResult(new { instanceId, status = "already running" });
         }
@@ -36,4 +36,9 @@ public static class RunWebhookTrigger
 
         return new OkObjectResult(new { instanceId });
     }
+
+    private static bool IsStillInFlight(OrchestrationMetadata existing) =>
+        existing.RuntimeStatus is OrchestrationRuntimeStatus.Pending
+            or OrchestrationRuntimeStatus.Running
+            or OrchestrationRuntimeStatus.Suspended;
 }
