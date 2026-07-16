@@ -16,6 +16,7 @@ public static class RunStatusTrigger
         [DurableClient] DurableTaskClient client,
         string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(client);
 
         var entityId = new EntityInstanceId(nameof(RunCounterEntity), instanceId);

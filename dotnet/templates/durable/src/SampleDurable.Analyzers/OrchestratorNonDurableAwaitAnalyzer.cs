@@ -16,13 +16,19 @@ public class OrchestratorNonDurableAwaitAnalyzer : DiagnosticAnalyzer
 
     private const string CompletedTaskPropertyName = "CompletedTask";
 
+    private static readonly ImmutableHashSet<string> ReplaySafeTaskHelpers =
+        ImmutableHashSet.Create("WhenAll", "WhenAny", "FromResult");
+
+    private static readonly ImmutableHashSet<string> TaskHelpersReportedByDurableAnalyzers =
+        ImmutableHashSet.Create("Delay");
+
     private static readonly ImmutableHashSet<string> AllowedTaskCombinators =
-        ImmutableHashSet.Create("WhenAll", "WhenAny", "FromResult", "Delay");
+        ReplaySafeTaskHelpers.Union(TaskHelpersReportedByDurableAnalyzers);
 
     private static readonly DiagnosticDescriptor Rule = new(
         DiagnosticId,
         "Non-durable await in orchestrator",
-        "'{0}' is not a durable operation - orchestrators may only await TaskOrchestrationContext calls, Task.WhenAll, or Task.WhenAny; move the call into an activity and await context.CallActivityAsync(nameof(TheActivity), input)",
+        "'{0}' is not a durable operation - orchestrators may only await TaskOrchestrationContext calls or the replay-safe Task helpers (Task.WhenAll, Task.WhenAny, Task.FromResult, Task.CompletedTask); move the call into an activity and await context.CallActivityAsync(nameof(TheActivity), input)",
         "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,

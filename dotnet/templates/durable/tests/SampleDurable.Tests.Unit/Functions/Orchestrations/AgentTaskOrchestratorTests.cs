@@ -98,7 +98,7 @@ public class AgentTaskOrchestratorTests
     }
 
     [Test]
-    public async Task Should_dispatch_before_waiting_for_the_callback()
+    public async Task Should_dispatch_the_work_item_before_returning()
     {
         var context = CreateContext();
         StubDispatch(context);
