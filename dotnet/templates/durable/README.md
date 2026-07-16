@@ -133,7 +133,7 @@ rules, all at error severity:
 | Rule | Blocks | Fix |
 |---|---|---|
 | CI0016 | An orchestrator `await`s something that isn't a durable operation | Use the durable equivalent (`context.CreateTimer`, `context.CallActivityAsync`, ...), or move the work into an activity |
-| CI0017 | An orchestrator class declares instance state (fields, a constructor) | Keep orchestrators `static`; pass data through parameters and the durable context instead |
+| CI0017 | An orchestrator class declares instance state (fields, a constructor), or mutable static state (a static field that is neither `const` nor `readonly`, or a settable static property) | Keep orchestrators `static`; hold shared values as `const` or `static readonly`; pass everything else through parameters and the durable context |
 | CI0018 | `CallActivityAsync`/`CallSubOrchestratorAsync` called with a string literal instead of `nameof(...)` | Always call with `nameof(TheActivityOrOrchestrator)` |
 
 Microsoft's own `DURABLE*` analyzers (determinism rules like banning `DateTime.UtcNow` and

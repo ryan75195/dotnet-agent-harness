@@ -250,6 +250,107 @@ public record MyOrchestrator
     }
 
     [Test]
+    public async Task Should_report_static_orchestrator_class_with_a_mutable_static_field()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public static class {|#0:MyOrchestrator|}
+{
+    private static int _attempts;
+
+    public static async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        _attempts++;
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0017", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments("MyOrchestrator"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_not_report_static_orchestrator_class_with_const_and_static_readonly()
+    {
+        var source = @"
+using System;
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public static class MyOrchestrator
+{
+    public const string EventName = ""Done"";
+
+    public static readonly TimeSpan Timeout = TimeSpan.FromHours(2);
+
+    public static async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        await Build(source).RunAsync();
+    }
+
+    [Test]
+    public async Task Should_report_static_orchestrator_class_with_a_settable_static_property()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public static class {|#0:MyOrchestrator|}
+{
+    private static int Attempts { get; set; }
+
+    public static async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        Attempts++;
+        return await context.CallActivityAsync<string>(""DoWork"");
+    }
+}";
+
+        var test = Build(source);
+        test.ExpectedDiagnostics.Add(
+            new DiagnosticResult("CI0017", Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithArguments("MyOrchestrator"));
+
+        await test.RunAsync();
+    }
+
+    [Test]
+    public async Task Should_not_report_static_orchestrator_class_with_a_get_only_static_property()
+    {
+        var source = @"
+using System.Threading.Tasks;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
+
+public static class MyOrchestrator
+{
+    private static string ActivityName => ""DoWork"";
+
+    public static async Task<string> RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        return await context.CallActivityAsync<string>(ActivityName);
+    }
+}";
+
+        await Build(source).RunAsync();
+    }
+
+    [Test]
     public async Task Should_report_orchestrator_class_with_constructor_parameter_and_no_field()
     {
         var source = @"
