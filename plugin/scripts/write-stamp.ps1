@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$ProjectDir,
-    [Parameter(Mandatory = $true)][ValidateSet('cli', 'etl-api', 'expo-app', 'mcp')][string]$Template,
+    [Parameter(Mandatory = $true)][ValidateSet('cli', 'durable', 'etl-api', 'expo-app', 'mcp')][string]$Template,
     [Parameter(Mandatory = $true)][string]$ProjectName,
     [Parameter(Mandatory = $true)][string]$RepoPath,
     [string]$BundleId
@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 
 $templateDirs = @{
     'cli'      = 'dotnet/templates/cli'
+    'durable'  = 'dotnet/templates/durable'
     'etl-api'  = 'dotnet/templates/etl-api'
     'expo-app' = 'expo/templates/app'
     'mcp'      = 'dotnet/templates/mcp'

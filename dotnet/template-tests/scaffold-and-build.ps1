@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('cli', 'etl-api', 'mcp')]
+    [ValidateSet('cli', 'durable', 'etl-api', 'mcp')]
     [string]$Template
 )
 
@@ -30,9 +30,27 @@ try {
     dotnet format --verify-no-changes
     if ($LASTEXITCODE -ne 0) { throw "dotnet format --verify-no-changes found issues on a fresh scaffold" }
 
-    Write-Host "Running scaffolded tests..."
-    dotnet test --no-build --verbosity minimal
-    if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
+    if ($Template -eq 'durable') {
+        Write-Host "Running scaffolded tests (Unit/Architecture/Analyzers)..."
+        # Scoped like the pre-commit hook and the new-project dotnet-durable handler's
+        # Verify step: Integration needs Azurite + Core Tools reachable, and this smoke
+        # test must pass with neither installed. Push and watch the durable CI job (or
+        # follow dotnet/README.md#development) to exercise Integration.
+        $testProjects = @(
+            'tests/SmokeTest.Tests.Unit',
+            'tests/SmokeTest.Tests.Architecture',
+            'tests/SmokeTest.Tests.Analyzers'
+        )
+        foreach ($project in $testProjects) {
+            dotnet test $project --no-build --verbosity minimal
+            if ($LASTEXITCODE -ne 0) { throw "Tests failed for $project" }
+        }
+    }
+    else {
+        Write-Host "Running scaffolded tests..."
+        dotnet test --no-build --verbosity minimal
+        if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
+    }
 
     Write-Host "Feedback capture: harness_log_failure must append an event..."
     $gitBash = Join-Path (Split-Path (Split-Path (Get-Command git).Source)) 'bin\bash.exe'

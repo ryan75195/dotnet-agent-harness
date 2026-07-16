@@ -16,7 +16,7 @@ commit → PR) and four git/Claude hooks enforcing it.
 
 | Stack | Where | Templates | Extras |
 |---|---|---|---|
-| .NET 10 | [`dotnet/`](dotnet/README.md) | `cli`, `etl-api` | 15 Roslyn analyzers (CI0001–CI0015), 5 architecture-test fixtures |
+| .NET 10 | [`dotnet/`](dotnet/README.md) | `cli`, `etl-api`, `mcp`, `durable` | 15 Roslyn analyzers shared by all four (CI0001–CI0015) + 3 durable-only (CI0016–CI0018), 5 architecture-test fixtures shared by all four + 1 durable-only |
 | Expo / React Native | [`expo/`](expo/) | `app` | Strict TS + custom ESLint rules + dependency-cruiser + coverage gates, RevenueCat baked in, staged iOS App Store **submission workflow** driven by Claude skills (SUBMISSION.md state machine) |
 
 ## .NET
@@ -65,8 +65,9 @@ The repo doubles as a Claude Code plugin marketplace. The `agent-harness`
 plugin (in [`plugin/`](plugin/)) ships:
 
 - **Scaffolding skills** — `new-dotnet-cli`, `new-dotnet-etl-api`,
-  `new-expo-app` — which scaffold from the templates above, stamp the
-  project with `.harness.json` provenance, and verify the guardrails pass.
+  `new-dotnet-mcp`, `new-dotnet-durable`, `new-expo-app` — which scaffold
+  from the templates above, stamp the project with `.harness.json`
+  provenance, and verify the guardrails pass.
 - **`harness-update`** — pulls the latest template changes into a
   previously-scaffolded project: PowerShell scripts classify each changed
   harness-owned file (clean → copied, customized → flagged), the agent
@@ -102,5 +103,11 @@ checks for the Expo template.
 ```powershell
 .\dotnet\template-tests\scaffold-and-build.ps1 cli
 .\dotnet\template-tests\scaffold-and-build.ps1 etl-api
+.\dotnet\template-tests\scaffold-and-build.ps1 mcp
+.\dotnet\template-tests\scaffold-and-build.ps1 durable
 .\expo\template-tests\scaffold-and-validate.ps1
 ```
+
+See [`dotnet/README.md`](dotnet/README.md#development) for what the
+`durable` leg covers by default and how to exercise its Integration tests
+locally.

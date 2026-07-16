@@ -32,7 +32,7 @@ foreach ($dir in $skillDirs) {
 }
 
 if ($RequireFull) {
-    $required = @('new-dotnet-cli', 'new-dotnet-etl-api', 'new-dotnet-mcp', 'new-expo-app', 'harness-update', 'harness-report', 'harness-capture-review')
+    $required = @('new-dotnet-cli', 'new-dotnet-durable', 'new-dotnet-etl-api', 'new-dotnet-mcp', 'new-expo-app', 'harness-update', 'harness-report', 'harness-capture-review')
     foreach ($name in $required) {
         if (-not (Test-Path (Join-Path $skillsDir "$name/SKILL.md"))) { throw "Required skill missing: $name" }
     }
