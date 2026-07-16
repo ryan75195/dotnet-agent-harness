@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -16,7 +16,7 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         DiagnosticId,
         "Public method lacks test coverage",
-        "'{0}' does not adequately test '{1}' â€” add a [Test] method that invokes it and asserts on the result with Assert.That",
+        "'{0}' does not adequately test '{1}' — add a [Test] method that invokes it and asserts on the result with Assert.That",
         "Testing",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,

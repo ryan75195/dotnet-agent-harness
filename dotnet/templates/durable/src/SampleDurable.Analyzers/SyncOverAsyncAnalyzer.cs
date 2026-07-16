@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -14,7 +14,7 @@ public class SyncOverAsyncAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         DiagnosticId,
         "Synchronous access on Task",
-        "'{0}' blocks asynchronously â€” use 'await' instead of '.{1}'",
+        "'{0}' blocks asynchronously — use 'await' instead of '.{1}'",
         "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

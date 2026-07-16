@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -16,7 +16,7 @@ public class ClassLengthAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         DiagnosticId,
         "Class too long",
-        "'{0}' is {1} lines long (max {2}) â€” split into smaller focused classes",
+        "'{0}' is {1} lines long (max {2}) — split into smaller focused classes",
         "Design",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using FluentAssertions;
@@ -41,7 +41,7 @@ public class CodeStructureTests
 
         var violations = classesRequiringTests
             .Where(t => !testFixtureNames.Contains(t.Name + "Tests"))
-            .Select(t => $"  {t.FullName} â€” expected {t.Name}Tests")
+            .Select(t => $"  {t.FullName} — expected {t.Name}Tests")
             .ToList();
 
         violations.Should().BeEmpty(
@@ -100,7 +100,7 @@ public class CodeStructureTests
             {
                 violations.Add(
                     $"  {fixture.Name} is in '{fixtureNs}' but tests {sourceAssemblyName}.{sourceClassName}" +
-                    $" â€” move to a namespace containing '{requiredSegment}'");
+                    $" — move to a namespace containing '{requiredSegment}'");
             }
         }
 
@@ -195,7 +195,7 @@ public class CodeStructureTests
 
         if (polymorphicBaseTypes.Count == 0)
         {
-            Assert.Pass("No [JsonPolymorphic] types found â€” nothing to enforce.");
+            Assert.Pass("No [JsonPolymorphic] types found — nothing to enforce.");
         }
 
         var testFixtureNames = TestHelpers.TestAssemblies
@@ -211,7 +211,7 @@ public class CodeStructureTests
             .Select(t =>
             {
                 var derivedCount = t.GetCustomAttributes<JsonDerivedTypeAttribute>().Count();
-                return $"  {t.FullName} ({derivedCount} derived types) â€” expected {t.Name}RoundtripTests";
+                return $"  {t.FullName} ({derivedCount} derived types) — expected {t.Name}RoundtripTests";
             })
             .ToList();
 

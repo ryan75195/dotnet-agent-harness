@@ -58,11 +58,25 @@ Get-ChildItem dotnet\templates\durable -Recurse -Directory |
   Where-Object { $_.Name -match 'bin|obj' } |
   Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
+# ENCODING HAZARD - read this before changing the loop below.
+# On Windows PowerShell 5.1:
+#   * `Get-Content -Raw` with no `-Encoding` decodes UTF-8 bytes as ANSI (CP1252),
+#     so every em-dash becomes 'a-EUR-"'. Writing that back re-encodes the mojibake
+#     permanently. `-Encoding utf8` on Get-Content is the minimum fix.
+#   * `Set-Content -Encoding utf8` ALWAYS emits a BOM on 5.1 (utf8NoBOM only exists
+#     on PowerShell Core 6+), so it silently adds a BOM to files that had none.
+# Both corruptions are invisible to dotnet build, dotnet format, and the test suite.
+# The .NET APIs below round-trip UTF-8 correctly and preserve each file's existing
+# BOM state, so they are safe on both 5.1 and Core.
+
 Get-ChildItem dotnet\templates\durable -Recurse -File | ForEach-Object {
-    $c = Get-Content $_.FullName -Raw
-    if ($c -match 'SampleMcp') {
-        ($c -replace 'SampleMcp', 'SampleDurable') |
-            Set-Content -NoNewline -Encoding utf8 $_.FullName
+    $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+    $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    $offset = if ($hasBom) { 3 } else { 0 }
+    $text = [System.Text.Encoding]::UTF8.GetString($bytes, $offset, $bytes.Length - $offset)
+    if ($text -match 'SampleMcp') {
+        $text = $text -replace 'SampleMcp', 'SampleDurable'
+        [System.IO.File]::WriteAllText($_.FullName, $text, (New-Object System.Text.UTF8Encoding($hasBom)))
     }
 }
 

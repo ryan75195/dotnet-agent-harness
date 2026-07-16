@@ -1,4 +1,4 @@
-﻿using SampleDurable.Analyzers;
+using SampleDurable.Analyzers;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
 
