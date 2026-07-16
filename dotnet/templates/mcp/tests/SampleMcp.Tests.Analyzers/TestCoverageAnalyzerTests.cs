@@ -372,4 +372,39 @@ public class TestCoverageAnalyzerTests
 
         await test.RunAsync();
     }
+
+    [Test]
+    public async Task Should_not_require_coverage_of_compiler_generated_record_clone()
+    {
+        var source = """
+            namespace System.Runtime.CompilerServices
+            {
+                internal static class IsExternalInit { }
+            }
+
+            public record FooResult(string Name)
+            {
+                public bool IsEmpty => Name.Length == 0;
+            }
+
+            [NUnit.Framework.TestFixture]
+            public class FooResultTests
+            {
+                [NUnit.Framework.Test]
+                public void Should_report_empty_for_a_blank_name()
+                {
+                    var sut = new FooResult("");
+                    sut.Deconstruct(out var name);
+                    NUnit.Framework.Assert.That(sut.IsEmpty, NUnit.Framework.Is.EqualTo(true));
+                }
+            }
+            """;
+
+        var test = new CSharpAnalyzerTest<TestCoverageAnalyzer, DefaultVerifier>
+        {
+            TestState = { Sources = { source, NUnitStubs } },
+        };
+
+        await test.RunAsync();
+    }
 }

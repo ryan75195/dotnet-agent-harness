@@ -6,6 +6,15 @@ on:
   workflow_dispatch:
 
 jobs:
+  analyzer-drift:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shared guardrail suite is identical across templates
+        shell: pwsh
+        run: ./dotnet/template-tests/analyzer-drift.ps1
+
   scaffold-and-test:
     runs-on: windows-latest
     strategy:

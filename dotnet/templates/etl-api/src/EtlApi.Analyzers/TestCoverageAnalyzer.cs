@@ -207,7 +207,6 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            // Only consider types declared in the current compilation (not referenced assemblies)
             if (!type.Locations.Any(loc => loc.IsInSource
                 && compilation.SyntaxTrees.Contains(loc.SourceTree)))
             {
@@ -235,7 +234,6 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
     private static INamedTypeSymbol? FindSourceType(
         Compilation compilation, string name, INamedTypeSymbol fixtureType)
     {
-        // Search current compilation (for verifier tests where both types are in same compilation)
         foreach (var type in GetAllTypes(compilation.GlobalNamespace))
         {
             if (type.Name == name
@@ -246,7 +244,6 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        // Search referenced assemblies
         foreach (var reference in compilation.References)
         {
             var symbol = compilation.GetAssemblyOrModuleSymbol(reference);
@@ -290,12 +287,10 @@ public class TestCoverageAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        // Check if called through an interface that sourceType implements
         foreach (var iface in sourceType.AllInterfaces)
         {
             if (SymbolEqualityComparer.Default.Equals(containingType, iface))
             {
-                // Verify the interface has a method with this name
                 if (iface.GetMembers(invokedMethod.Name).Any())
                 {
                     return true;
