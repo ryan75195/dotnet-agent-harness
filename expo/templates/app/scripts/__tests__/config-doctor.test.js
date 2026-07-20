@@ -45,7 +45,7 @@ describe('evaluateConfig', () => {
   });
 
   test('placeholder bundle id fails', () => {
-    const result = evaluateConfig(goodInputs({ bundleId: 'com.example.apptemplate' }));
+    const result = evaluateConfig(goodInputs({ bundleId: ['com.example', 'apptemplate'].join('.') }));
     expect(result.critical.find((r) => r.key === 'bundle-id').ok).toBe(false);
   });
 

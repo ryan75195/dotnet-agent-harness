@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$ProjectDir,
-    [Parameter(Mandatory = $true)][ValidateSet('cli', 'durable', 'etl-api', 'expo-app', 'mcp')][string]$Template,
+    [Parameter(Mandatory = $true)][ValidateSet('cli', 'durable', 'etl-api', 'expo-app', 'expo-tv-app', 'mcp')][string]$Template,
     [Parameter(Mandatory = $true)][string]$ProjectName,
     [Parameter(Mandatory = $true)][string]$RepoPath,
     [string]$BundleId
@@ -13,6 +13,7 @@ $templateDirs = @{
     'durable'  = 'dotnet/templates/durable'
     'etl-api'  = 'dotnet/templates/etl-api'
     'expo-app' = 'expo/templates/app'
+    'expo-tv-app' = 'expo/templates/tv-app'
     'mcp'      = 'dotnet/templates/mcp'
 }
 $templateDir = $templateDirs[$Template]
@@ -20,7 +21,7 @@ $templateDir = $templateDirs[$Template]
 $commit = (git -C $RepoPath rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw "Could not resolve HEAD of harness repo at $RepoPath" }
 
-if ($Template -eq 'expo-app') {
+if ($Template -in @('expo-app', 'expo-tv-app')) {
     if (-not $BundleId) { $BundleId = "com.example.$($ProjectName.ToLower())" }
     $slug = ($ProjectName -creplace '(?<=[a-z0-9])(?=[A-Z])', '-').ToLower()
     $renames = @(

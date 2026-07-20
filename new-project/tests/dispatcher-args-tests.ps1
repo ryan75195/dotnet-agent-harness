@@ -20,6 +20,7 @@ $cases = @(
     @{ args = @();                                        expect = 0;  name = 'bare -> usage' },
     @{ args = @('-h');                                    expect = 0;  name = '-h -> usage' },
     @{ args = @('expo', 'MyApp', '-BundleId', 'com.a.b', '-DryRun'); expect = 0; name = 'dry-run' },
+    @{ args = @('expo-tv', 'MyTvApp', '-BundleId', 'com.a.tv', '-DryRun'); expect = 0; name = 'tv dry-run' },
     @{ args = @('nope', 'Foo');                           expect = 2;  name = 'unknown type' },
     @{ args = @('expo');                                  expect = 2;  name = 'missing name' },
     @{ args = @('expo', 'lowerbad');                      expect = 2;  name = 'non-pascal name' },

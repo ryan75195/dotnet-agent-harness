@@ -49,6 +49,14 @@ Assert ($r2[3].from -ceq 'apptemplate' -and $r2[3].to -ceq 'myshinyapp') 'lowerc
 $raw2 = Get-Content (Join-Path $proj2 '.harness.json') -Raw
 Assert ($raw2 -cmatch '"AppTemplate"') 'AppTemplate literal present in raw JSON'
 
+$projTv = Join-Path $work 'proj-tv'
+New-Item -ItemType Directory $projTv | Out-Null
+& (Join-Path $pluginScripts 'write-stamp.ps1') -ProjectDir $projTv -Template expo-tv-app -ProjectName MyTvApp -RepoPath $repo -BundleId com.example.mytvapp
+$stampTv = Get-Content (Join-Path $projTv '.harness.json') -Raw | ConvertFrom-Json
+Assert ($stampTv.stack -eq 'expo') 'TV expo stack'
+Assert ($stampTv.templateDir -eq 'expo/templates/tv-app') 'TV expo templateDir'
+Assert (@($stampTv.renames)[0].to -ceq 'com.example.mytvapp') 'TV bundle id rename'
+
 $proj3 = Join-Path $work 'proj3'
 New-Item -ItemType Directory $proj3 | Out-Null
 & (Join-Path $pluginScripts 'write-stamp.ps1') -ProjectDir $proj3 -Template expo-app -ProjectName Plain -RepoPath $repo

@@ -1,0 +1,57 @@
+{
+  "name": "app-template",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android:tv": "expo run:android",
+    "ios:tv": "expo run:ios",
+    "prebuild:tv": "expo prebuild --clean",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "depcruise": "depcruise src --config .dependency-cruiser.cjs",
+    "check-test-files": "node scripts/check-test-files.js",
+    "test": "jest",
+    "doctor": "node scripts/submission-doctor.js",
+    "verify": "npm run typecheck && npm run lint && npm run depcruise && npm run check-test-files && npm run test -- --coverage"
+  },
+  "dependencies": {
+    "dotenv": "^17.0.1",
+    "expo": "^55.0.5",
+    "expo-apple-authentication": "~55.0.13",
+    "expo-auth-session": "~55.0.16",
+    "expo-crypto": "~55.0.15",
+    "expo-dev-client": "~55.0.13",
+    "expo-router": "~55.0.16",
+    "expo-secure-store": "~55.0.14",
+    "expo-status-bar": "~55.0.4",
+    "expo-video": "~3.0.16",
+    "expo-web-browser": "~55.0.16",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "npm:react-native-tvos@0.83-stable",
+    "react-native-purchases": "^9.6.6",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0"
+  },
+  "devDependencies": {
+    "@react-native-tvos/config-tv": "^0.1.6",
+    "@testing-library/react-native": "^13.2.0",
+    "@types/jest": "^29.5.14",
+    "@types/react": "~19.2.10",
+    "babel-preset-expo": "~55.0.8",
+    "dependency-cruiser": "^16.0.0",
+    "eslint": "^9.0.0",
+    "jest": "^29.7.0",
+    "jest-expo": "~55.0.0",
+    "react-test-renderer": "19.2.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.0.0"
+  },
+  "expo": {
+    "install": {
+      "exclude": ["react-native"]
+    }
+  },
+  "private": true
+}
