@@ -1,3 +1,8 @@
+param(
+    [ValidateSet('app', 'tv-app')]
+    [string]$Template = 'app'
+)
+
 $ErrorActionPreference = 'Stop'
 # In pwsh 7.3+, $PSNativeCommandUseErrorActionPreference defaults to $true which causes
 # any native command with a non-zero exit code to throw a terminating error, bypassing
@@ -8,14 +13,31 @@ if ($null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope
 }
 
 $expoRoot = Split-Path -Parent $PSScriptRoot
-$scaffoldDir = Join-Path $env:TEMP 'expo-template-smoke'
+$suffix = if ($Template -eq 'tv-app') { '-tv' } else { '' }
+$scaffoldRoot = Join-Path $env:SystemDrive 'agent-harness-template-tests'
+$createdScaffoldRoot = -not (Test-Path -LiteralPath $scaffoldRoot)
+[System.IO.Directory]::CreateDirectory($scaffoldRoot) | Out-Null
+$scaffoldDir = Join-Path $scaffoldRoot "expo-template-smoke$suffix-$PID"
 
-Write-Host "Cleaning previous smoke-test directory..."
-if (Test-Path $scaffoldDir) {
-    Remove-Item -Recurse -Force $scaffoldDir
+function Remove-ScaffoldDirectory([string]$path) {
+    if (-not (Test-Path -LiteralPath $path)) {
+        return
+    }
+    $emptyDir = Join-Path $scaffoldRoot "expo-template-empty-$PID"
+    [System.IO.Directory]::CreateDirectory($emptyDir) | Out-Null
+    robocopy $emptyDir $path /MIR /NFL /NDL /NJH /NJS | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+        throw "robocopy cleanup failed with exit code $LASTEXITCODE"
+    }
+    $global:LASTEXITCODE = 0
+    [System.IO.Directory]::Delete("\\?\$path", $true)
+    [System.IO.Directory]::Delete($emptyDir, $true)
 }
 
-& (Join-Path $expoRoot 'new-app.ps1') -Name SmokeTest -Destination $scaffoldDir
+Write-Host "Preparing smoke-test directory..."
+Remove-ScaffoldDirectory $scaffoldDir
+
+& (Join-Path $expoRoot 'new-app.ps1') -Name SmokeTest -Destination $scaffoldDir -Template $Template
 
 Push-Location $scaffoldDir
 try {
@@ -76,6 +98,19 @@ try {
     Remove-Item Env:EXPO_PUBLIC_AUTH0_DOMAIN
     if ($partialExit -ne 7) { throw "partial auth config did not fail app.config.js (exit $partialExit)" }
 
+    if ($Template -eq 'tv-app') {
+        Write-Host "Android TV production config must accept the Android RevenueCat key..."
+        $env:NODE_ENV = 'production'
+        $env:EXPO_TV_PLATFORM = 'android'
+        $env:EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY = 'android-smoke-key'
+        node -e "require('./app.config.js')"
+        $androidConfigExit = $LASTEXITCODE
+        Remove-Item Env:NODE_ENV
+        Remove-Item Env:EXPO_TV_PLATFORM
+        Remove-Item Env:EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY
+        if ($androidConfigExit -ne 0) { throw "Android TV production config rejected the Android RevenueCat key (exit $androidConfigExit)" }
+    }
+
     Write-Host "CI workflow must ship in the scaffold..."
     $ciPath = Join-Path $scaffoldDir '.github\workflows\ci.yml'
     if (-not (Test-Path $ciPath)) { throw "ci.yml missing from scaffold at $ciPath" }
@@ -87,6 +122,19 @@ try {
     Write-Host "expo-router root layout must ship in the scaffold..."
     $layoutPath = Join-Path $scaffoldDir 'src\app\_layout.tsx'
     if (-not (Test-Path $layoutPath)) { throw "src/app/_layout.tsx missing from scaffold at $layoutPath" }
+
+    if ($Template -eq 'tv-app') {
+        Write-Host "TV configuration and focus components must ship in the scaffold..."
+        $packageText = Get-Content (Join-Path $scaffoldDir 'package.json') -Raw
+        if ($packageText -notmatch 'react-native-tvos') { throw 'TV scaffold does not depend on react-native-tvos' }
+        if ($packageText -notmatch '@react-native-tvos/config-tv') { throw 'TV scaffold does not depend on the TV config plugin' }
+        if ($packageText -notmatch 'expo-video') { throw 'TV scaffold does not include expo-video' }
+        $configText = Get-Content (Join-Path $scaffoldDir 'app.config.js') -Raw
+        if ($configText -notmatch "orientation: 'landscape'") { throw 'TV scaffold does not force landscape orientation' }
+        if ($configText -notmatch '@react-native-tvos/config-tv') { throw 'TV scaffold does not enable the TV config plugin' }
+        if (-not (Test-Path (Join-Path $scaffoldDir 'src\components\FocusButton.tsx'))) { throw 'TV scaffold does not include FocusButton' }
+        if (-not (Test-Path (Join-Path $scaffoldDir 'src\app\(app)\library.tsx'))) { throw 'TV scaffold does not include a library route' }
+    }
 
     Write-Host "Doctor must flag missing account-deletion endpoint when auth is enabled..."
     $env:EXPO_PUBLIC_AUTH0_DOMAIN = 'smoke.auth0.com'
@@ -140,6 +188,9 @@ finally {
 
 Write-Host ""
 Write-Host "Expo template validation passed. Cleaning up..."
-Remove-Item -Recurse -Force $scaffoldDir -ErrorAction SilentlyContinue
+Remove-ScaffoldDirectory $scaffoldDir
+if ($createdScaffoldRoot) {
+    [System.IO.Directory]::Delete($scaffoldRoot, $true)
+}
 Write-Host "Done."
 exit 0

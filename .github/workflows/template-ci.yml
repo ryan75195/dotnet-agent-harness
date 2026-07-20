@@ -144,6 +144,10 @@ jobs:
         shell: pwsh
         run: ./expo/template-tests/scaffold-and-validate.ps1
 
+      - name: Scaffold and validate Expo TV template
+        shell: pwsh
+        run: ./expo/template-tests/scaffold-and-validate.ps1 -Template tv-app
+
   new-project-cli:
     runs-on: windows-latest
     steps:

@@ -1,6 +1,6 @@
 @{
     Type        = 'expo'
-    Description = 'Expo / React Native app (payments, auth, EAS build/deploy)'
+    Description = 'Expo / React Native mobile app (payments, auth, EAS build/deploy)'
     StampName   = 'expo-app'
     ExtraArgs   = @(
         @{ Name = 'BundleId'; Required = $false; Help = 'reverse-DNS id, e.g. com.acme.myapp' }

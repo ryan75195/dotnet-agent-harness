@@ -3,17 +3,30 @@ param(
     [ValidatePattern('^[A-Z][A-Za-z0-9]*$')]
     [string]$Name,
     [string]$Destination = (Join-Path (Get-Location) $Name),
-    [string]$BundleId = "com.example.$($Name.ToLower())"
+    [string]$BundleId = "com.example.$($Name.ToLower())",
+    [ValidateSet('app', 'tv-app')]
+    [string]$Template = 'app'
 )
 
 $ErrorActionPreference = 'Stop'
 
-$templateDir = Join-Path $PSScriptRoot 'templates\app'
+$templateDir = Join-Path $PSScriptRoot "templates\$Template"
+if (-not (Test-Path $templateDir)) {
+    throw "Template $Template was not found at $templateDir."
+}
 if (Test-Path $Destination) {
     throw "Destination $Destination already exists."
 }
 
-Write-Host "Copying template to $Destination..."
+Write-Host "Copying $Template template to $Destination..."
+if ($Template -eq 'tv-app') {
+    $baseTemplateDir = Join-Path $PSScriptRoot 'templates\app'
+    robocopy $baseTemplateDir $Destination /E /XD node_modules .expo coverage .git /NFL /NDL /NJH /NJS | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+        throw "robocopy failed with exit code $LASTEXITCODE"
+    }
+    $global:LASTEXITCODE = 0
+}
 robocopy $templateDir $Destination /E /XD node_modules .expo coverage .git /NFL /NDL /NJH /NJS | Out-Null
 if ($LASTEXITCODE -ge 8) {
     throw "robocopy failed with exit code $LASTEXITCODE"

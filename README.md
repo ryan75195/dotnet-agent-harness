@@ -17,7 +17,7 @@ commit → PR) and four git/Claude hooks enforcing it.
 | Stack | Where | Templates | Extras |
 |---|---|---|---|
 | .NET 10 | [`dotnet/`](dotnet/README.md) | `cli`, `etl-api`, `mcp`, `durable` | 15 Roslyn analyzers shared by all four (CI0001–CI0015) + 3 durable-only (CI0016–CI0018), 5 architecture-test fixtures shared by all four + 1 durable-only |
-| Expo / React Native | [`expo/`](expo/) | `app` | Strict TS + custom ESLint rules + dependency-cruiser + coverage gates, RevenueCat baked in, staged iOS App Store **submission workflow** driven by Claude skills (SUBMISSION.md state machine) |
+| Expo / React Native | [`expo/`](expo/) | `app`, `tv-app` | Strict TS + custom ESLint rules + dependency-cruiser + coverage gates, RevenueCat baked in, staged iOS App Store **submission workflow** driven by Claude skills (SUBMISSION.md state machine) |
 
 ## .NET
 
@@ -40,6 +40,12 @@ cd MyApp
 .\setup.ps1
 ```
 
+For an Android TV / Apple TV project, select the TV variant instead:
+
+```powershell
+.\dotnet-agent-harness\new-project.ps1 expo-tv MyTvApp
+```
+
 What you get:
 
 - **Guardrails at error severity:** no comments (`local/no-comments` with
@@ -58,6 +64,10 @@ What you get:
   and resumable; secrets never enter the repo.
 - **RevenueCat baked in:** `src/lib/purchases/` wraps configuration and a
   `useSubscription` hook; a paywall screen renders the current offering.
+- **TV variant:** `tv-app` uses `react-native-tvos`, Expo's TV config plugin,
+  landscape-first layouts, D-pad-visible focus states, and `expo-video`.
+  It targets Android TV and Apple TV; Roku, Tizen, and webOS need separate
+  platform implementations.
 
 ## Claude Code plugin
 
