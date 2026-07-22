@@ -1,0 +1,30 @@
+# Stays on windows-latest deliberately: scaffold-and-validate.ps1 is Windows-bound
+# (\\?\ long-path deletes, backslash path literals), so a Linux move is a port with
+# breakage risk, not a runner swap. Path filtering already keeps this job off every
+# non-expo change, which is where nearly all of its old cost came from.
+name: expo-templates
+on:
+  push:
+    branches: [main]
+    paths: ['expo/**', '.github/workflows/expo-templates.yml']
+  pull_request:
+    paths: ['expo/**', '.github/workflows/expo-templates.yml']
+  workflow_dispatch:
+
+jobs:
+  expo-scaffold-and-validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Scaffold and validate expo template
+        shell: pwsh
+        run: ./expo/template-tests/scaffold-and-validate.ps1
+
+      - name: Scaffold and validate Expo TV template
+        shell: pwsh
+        run: ./expo/template-tests/scaffold-and-validate.ps1 -Template tv-app
