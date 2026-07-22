@@ -32,7 +32,8 @@
     "react-native": "npm:react-native-tvos@0.83-stable",
     "react-native-purchases": "^9.6.6",
     "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0"
+    "react-native-screens": "~4.23.0",
+    "react-native-web": "^0.21.0"
   },
   "devDependencies": {
     "@react-native-tvos/config-tv": "^0.1.6",
@@ -47,6 +48,9 @@
     "react-test-renderer": "19.2.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.0.0"
+  },
+  "overrides": {
+    "react-native": "npm:react-native-tvos@0.83-stable"
   },
   "expo": {
     "install": {
