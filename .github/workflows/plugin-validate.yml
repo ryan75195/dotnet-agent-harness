@@ -1,0 +1,42 @@
+name: plugin-validate
+on:
+  push:
+    branches: [main]
+    paths: ['plugin/**', '.claude-plugin/**', '.github/workflows/plugin-validate.yml']
+  pull_request:
+    paths: ['plugin/**', '.claude-plugin/**', '.github/workflows/plugin-validate.yml']
+  workflow_dispatch:
+
+jobs:
+  plugin-validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plugin manifest and skill sanity
+        shell: pwsh
+        run: ./plugin/template-tests/validate-plugin.ps1 -RequireFull
+
+      - name: Stamp and resolve-repo tests
+        shell: pwsh
+        run: ./plugin/template-tests/stamp-test.ps1
+
+      - name: Annotation hook tests
+        shell: pwsh
+        run: ./plugin/template-tests/annotate-test.ps1
+
+      - name: Update-script tests
+        shell: pwsh
+        run: ./plugin/template-tests/update-scripts-test.ps1
+
+      - name: Feedback-kind tests
+        shell: pwsh
+        run: ./plugin/template-tests/feedback-kind-test.ps1
+
+      - name: Fold-events tests
+        shell: pwsh
+        run: ./plugin/template-tests/fold-events-test.ps1
+
+      - name: Capture-review tests
+        shell: pwsh
+        run: ./plugin/template-tests/capture-review-test.ps1

@@ -1,8 +1,10 @@
-name: template-ci
+name: dotnet-templates
 on:
   push:
     branches: [main]
+    paths: ['dotnet/**', '.github/workflows/dotnet-templates.yml']
   pull_request:
+    paths: ['dotnet/**', '.github/workflows/dotnet-templates.yml']
   workflow_dispatch:
 
 jobs:
@@ -130,84 +132,3 @@ jobs:
           if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 
           exit $testExit
-
-  expo-scaffold-and-validate:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Scaffold and validate expo template
-        shell: pwsh
-        run: ./expo/template-tests/scaffold-and-validate.ps1
-
-      - name: Scaffold and validate Expo TV template
-        shell: pwsh
-        run: ./expo/template-tests/scaffold-and-validate.ps1 -Template tv-app
-
-  new-project-cli:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Configure git identity (scaffold setup commit + CLI pre-flight)
-        shell: pwsh
-        run: |
-          git config --global user.email "ci@example.com"
-          git config --global user.name "template-ci"
-
-      - name: Dispatcher library tests
-        shell: pwsh
-        run: ./new-project/tests/lib-tests.ps1
-
-      - name: Installer tests
-        shell: pwsh
-        run: ./new-project/tests/install-tests.ps1
-
-      - name: Dispatcher arg/exit-code tests
-        shell: pwsh
-        run: ./new-project/tests/dispatcher-args-tests.ps1
-
-      - name: End-to-end scaffold (dotnet-cli)
-        shell: pwsh
-        run: ./new-project/tests/e2e-dotnet-cli.ps1
-
-  plugin-validate:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Plugin manifest and skill sanity
-        shell: pwsh
-        run: ./plugin/template-tests/validate-plugin.ps1 -RequireFull
-
-      - name: Stamp and resolve-repo tests
-        shell: pwsh
-        run: ./plugin/template-tests/stamp-test.ps1
-
-      - name: Annotation hook tests
-        shell: pwsh
-        run: ./plugin/template-tests/annotate-test.ps1
-
-      - name: Update-script tests
-        shell: pwsh
-        run: ./plugin/template-tests/update-scripts-test.ps1
-
-      - name: Feedback-kind tests
-        shell: pwsh
-        run: ./plugin/template-tests/feedback-kind-test.ps1
-
-      - name: Fold-events tests
-        shell: pwsh
-        run: ./plugin/template-tests/fold-events-test.ps1
-
-      - name: Capture-review tests
-        shell: pwsh
-        run: ./plugin/template-tests/capture-review-test.ps1
