@@ -99,16 +99,32 @@ try {
     if ($partialExit -ne 7) { throw "partial auth config did not fail app.config.js (exit $partialExit)" }
 
     if ($Template -eq 'tv-app') {
-        Write-Host "Android TV production config must accept the Android RevenueCat key..."
+        Write-Host "TV production config must load without a RevenueCat key outside EAS..."
         $env:NODE_ENV = 'production'
-        $env:EXPO_TV_PLATFORM = 'android'
+        node -e "require('./app.config.js')"
+        $noKeyConfigExit = $LASTEXITCODE
+        Remove-Item Env:NODE_ENV
+        if ($noKeyConfigExit -ne 0) { throw "TV production config without a RevenueCat key failed outside EAS (exit $noKeyConfigExit)" }
+
+        Write-Host "TV EAS store build must still require a RevenueCat key..."
+        $env:NODE_ENV = 'production'
+        $env:EAS_BUILD = 'true'
+        node -e "try { require('./app.config.js'); process.exit(0) } catch (e) { process.exit(7) }"
+        $easNoKeyExit = $LASTEXITCODE
+        Remove-Item Env:NODE_ENV
+        Remove-Item Env:EAS_BUILD
+        if ($easNoKeyExit -ne 7) { throw "TV EAS production config without a RevenueCat key did not fail (exit $easNoKeyExit)" }
+
+        Write-Host "TV EAS store build must accept the Android RevenueCat key..."
+        $env:NODE_ENV = 'production'
+        $env:EAS_BUILD = 'true'
         $env:EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY = 'android-smoke-key'
         node -e "require('./app.config.js')"
         $androidConfigExit = $LASTEXITCODE
         Remove-Item Env:NODE_ENV
-        Remove-Item Env:EXPO_TV_PLATFORM
+        Remove-Item Env:EAS_BUILD
         Remove-Item Env:EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY
-        if ($androidConfigExit -ne 0) { throw "Android TV production config rejected the Android RevenueCat key (exit $androidConfigExit)" }
+        if ($androidConfigExit -ne 0) { throw "TV EAS production config rejected the Android RevenueCat key (exit $androidConfigExit)" }
     }
 
     Write-Host "CI workflow must ship in the scaffold..."
@@ -129,6 +145,12 @@ try {
         if ($packageText -notmatch 'react-native-tvos') { throw 'TV scaffold does not depend on react-native-tvos' }
         if ($packageText -notmatch '@react-native-tvos/config-tv') { throw 'TV scaffold does not depend on the TV config plugin' }
         if ($packageText -notmatch 'expo-video') { throw 'TV scaffold does not include expo-video' }
+        if ($packageText -notmatch '"overrides"') { throw 'TV scaffold does not pin react-native to the TV fork via overrides' }
+        if ($packageText -notmatch 'react-native-web') { throw 'TV scaffold does not depend on react-native-web' }
+        $installedReactNative = Get-Content (Join-Path $scaffoldDir 'node_modules\react-native\package.json') -Raw | ConvertFrom-Json
+        if ($installedReactNative.name -ne 'react-native-tvos') { throw "npm resolved react-native to '$($installedReactNative.name)' instead of react-native-tvos" }
+        if (-not (Test-Path (Join-Path $scaffoldDir 'node_modules\react-native-web\package.json'))) { throw 'react-native-web did not resolve in the TV scaffold' }
+        if (-not (Test-Path (Join-Path $scaffoldDir 'src\lib\tv\__tests__\reactNativeTvos.test.ts'))) { throw 'TV scaffold does not include the react-native-tvos guard test' }
         $configText = Get-Content (Join-Path $scaffoldDir 'app.config.js') -Raw
         if ($configText -notmatch "orientation: 'landscape'") { throw 'TV scaffold does not force landscape orientation' }
         if ($configText -notmatch '@react-native-tvos/config-tv') { throw 'TV scaffold does not enable the TV config plugin' }

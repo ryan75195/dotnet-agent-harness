@@ -6,13 +6,14 @@ const packageJson = require('./package.json');
 const isProduction = process.env.NODE_ENV === 'production';
 const AUTH_ENV_VARS = ['EXPO_PUBLIC_AUTH0_DOMAIN', 'EXPO_PUBLIC_AUTH0_CLIENT_ID'];
 
-function purchaseEnvVar() {
-  const platform = process.env.EAS_BUILD_PLATFORM ?? process.env.EXPO_TV_PLATFORM ?? 'ios';
-  return platform === 'android' ? 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY' : 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY';
-}
+const PURCHASE_ENV_VARS = ['EXPO_PUBLIC_REVENUECAT_IOS_API_KEY', 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY'];
 
 function missingProductionVars() {
-  const missing = [purchaseEnvVar()].filter((name) => !process.env[name]);
+  const missing = [];
+  const setPurchaseVars = PURCHASE_ENV_VARS.filter((name) => process.env[name]);
+  if (process.env.EAS_BUILD && setPurchaseVars.length === 0) {
+    missing.push(PURCHASE_ENV_VARS[0]);
+  }
   const setAuthVars = AUTH_ENV_VARS.filter((name) => process.env[name]);
   if (setAuthVars.length > 0 && setAuthVars.length < AUTH_ENV_VARS.length) {
     missing.push(...AUTH_ENV_VARS.filter((name) => !process.env[name]));
