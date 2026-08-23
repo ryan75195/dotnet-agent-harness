@@ -1,0 +1,23 @@
+# agent-factory repository policy. Read from the DEFAULT BRANCH only — the factory
+# cannot project work items for this repo until this file is on main.
+#
+# Valid top-level keys (RepositoryPolicySchema.TopLevelKeys): version, enabled,
+# defaultProvider, baseBranch, authorizedMaintainers, authorizedTeam,
+# concurrencyLimit, priority, retry. Unknown keys are rejected.
+version: 1
+enabled: true
+defaultProvider: opencode
+baseBranch: main
+
+# Only these accounts can authorise a run by applying factory:ready.
+authorizedMaintainers:
+  - ryan75195
+
+# Deliberately lower than the factory's own 10: this repo's guardrail suite is
+# duplicated across four templates, so concurrent agents are more likely to collide
+# on the same files. Raise it once that stops being true.
+concurrencyLimit: 3
+
+retry:
+  maxAttempts: 3
+  backoffSeconds: 30
