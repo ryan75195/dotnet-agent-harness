@@ -1,0 +1,17 @@
+{
+  "testGateable": true,
+  "testCommand": "dotnet test dotnet/templates/cli/tests/ConsoleApp.Tests.Analyzers/ConsoleApp.Tests.Analyzers.csproj --filter FullyQualifiedName~TestFixtureSourceTypeAnalyzerCriterion",
+  "rationale": "The six criterion-specific NUnit files exercise the new analyzer's missing-owned-type, framework-type, and non-unit-fixture outcomes, reserve CI0019, verify all template smoke fixtures are build-safe, and execute the existing shared-suite drift gate.",
+  "shapePaths": [
+    "dotnet/templates/cli/src/ConsoleApp.Analyzers/TestFixtureSourceTypeAnalyzer.cs",
+    "dotnet/templates/etl-api/src/EtlApi.Analyzers/TestFixtureSourceTypeAnalyzer.cs",
+    "dotnet/templates/mcp/src/SampleMcp.Analyzers/TestFixtureSourceTypeAnalyzer.cs",
+    "dotnet/templates/durable/src/SampleDurable.Analyzers/TestFixtureSourceTypeAnalyzer.cs"
+  ],
+  "shapePathCitations": {
+    "dotnet/templates/cli/src/ConsoleApp.Analyzers/TestFixtureSourceTypeAnalyzer.cs": "AC-1",
+    "dotnet/templates/etl-api/src/EtlApi.Analyzers/TestFixtureSourceTypeAnalyzer.cs": "AC-5",
+    "dotnet/templates/mcp/src/SampleMcp.Analyzers/TestFixtureSourceTypeAnalyzer.cs": "AC-5",
+    "dotnet/templates/durable/src/SampleDurable.Analyzers/TestFixtureSourceTypeAnalyzer.cs": "AC-5"
+  }
+}

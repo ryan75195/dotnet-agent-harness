@@ -1,0 +1,58 @@
+{
+  "criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "A unit-test fixture whose name does not correspond to a type that exists in the solution fails the build, reported at error severity.",
+      "plannedImplementation": "Add the CI0019 analyzer to identify NUnit unit fixtures and resolve the type-name portion of each fixture against the compilation's solution-owned symbols, reporting an error when it is absent.",
+      "plannedVerification": "TestFixtureSourceTypeAnalyzerCriterion1Tests supplies a uniquely named NUnit fixture with no matching declaration and expects one CI0019 compiler error on the fixture identifier.",
+      "materialConcerns": ["public-contract compatibility"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-2",
+      "criterion": "A fixture named after a type that exists only outside the solution — a framework or library type — is still reported, because it does not name a type this solution owns.",
+      "plannedImplementation": "Resolve candidate fixture names against source declarations belonging to the current compilation rather than accepting metadata symbols such as System.String.",
+      "plannedVerification": "TestFixtureSourceTypeAnalyzerCriterion2Tests uses StringTests without a solution String declaration and expects CI0019, proving a framework symbol does not satisfy ownership.",
+      "materialConcerns": ["public-contract compatibility"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-3",
+      "criterion": "Test fixtures that are not unit-test fixtures are unaffected, since they legitimately do not mirror a single type.",
+      "plannedImplementation": "Restrict analysis to the unit-test fixture marker and leave other fixture attributes unreported.",
+      "plannedVerification": "TestFixtureSourceTypeAnalyzerCriterion3Tests provides a uniquely named fixture with a non-unit IntegrationFixture attribute and expects no diagnostics.",
+      "materialConcerns": ["public-contract compatibility"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-4",
+      "criterion": "The new rule uses a diagnostic identifier that does not collide with any identifier already in use by any template.",
+      "plannedImplementation": "Publish the new analyzer under CI0019 consistently across all four template copies.",
+      "plannedVerification": "TestFixtureSourceTypeAnalyzerCriterion4Tests asserts the analyzer identifier is exactly CI0019 and is absent from the existing CI0001 through CI0018 identifiers.",
+      "materialConcerns": ["public-contract compatibility"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-5",
+      "criterion": "After the change, a project freshly scaffolded from any template builds clean — no placeholder fixture is left that the new rule rejects.",
+      "plannedImplementation": "Replace each template's placeholder SmokeTests fixture with a fixture whose name mirrors the existing AssemblyMarker type, and include the analyzer in every template's analyzer project.",
+      "plannedVerification": "TestFixtureSourceTypeAnalyzerCriterion5Tests checks all four template unit SmokeTests paths contain AssemblyMarkerTests and no longer contain the placeholder SmokeTests fixture; the implementation pass must additionally satisfy the scaffold build gate.",
+      "materialConcerns": ["release impact", "public-contract compatibility"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-6",
+      "criterion": "The shared guardrail suite remains identical across the templates that share it, so the drift gate passes.",
+      "plannedImplementation": "Apply the same analyzer and corresponding shared analyzer-suite changes to cli, etl-api, mcp, and durable, differing only in root namespace.",
+      "plannedVerification": "TestFixtureSourceTypeAnalyzerCriterion6Tests applies the existing analyzer-drift gate's shared-file and root-namespace normalization to the four template suites and asserts all normalized shared files are equal.",
+      "materialConcerns": ["release impact"],
+      "verificationStatus": "planned",
+      "comparison": false
+    }
+  ]
+}
