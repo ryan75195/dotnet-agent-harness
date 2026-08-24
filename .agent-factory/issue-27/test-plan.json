@@ -1,0 +1,11 @@
+{
+  "testGateable": true,
+  "testCommand": "./plugin/template-tests/register-with-factory-test.ps1",
+  "rationale": "The six explicit PowerShell tests invoke the registration script against temporary factory and project fixtures and assert each required file, executable mode, exclusion, idempotent repeat, and graceful missing-source outcome. The production script is a throwing shape stub, so the gate is red until registration behavior is implemented.",
+  "shapePaths": [
+    "plugin/scripts/register-with-factory.ps1"
+  ],
+  "shapePathCitations": {
+    "plugin/scripts/register-with-factory.ps1": "AC-1"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "After the registration step runs with a reachable factory source, a policy file is present at the location the factory reads, and its content is valid YAML that matches the factory's own policy (same authorized maintainers, same default provider)",
+      "plannedImplementation": "Implement plugin/scripts/register-with-factory.ps1 to read the factory policy from the supplied local source or gh API response and write the policy to the project's .github/agent-factory.yml as UTF-8 without BOM.",
+      "plannedVerification": "register-with-factory-ac1-test.ps1 runs against a valid policy fixture, asserts the destination policy exists, and asserts its complete content equals the factory fixture content, which is valid YAML containing the authorized maintainer and default provider.",
+      "materialConcerns": [],
+      "verificationStatus": "planned",
+      "comparison": true,
+      "comparisonObservation": {
+        "firstObservation": "On the first registration, the project policy content equals the reachable factory policy content.",
+        "whenHeldValueAbsent": "If no factory policy can be read, registration skips without claiming a policy was installed; the missing-source behavior is independently verified by AC-6."
+      }
+    },
+    {
+      "id": "AC-2",
+      "criterion": "After the registration step runs, a POSIX shell script that configures the git hooks path is present in the scaffolded project and is executable",
+      "plannedImplementation": "Read the factory .agent-factory/setup.sh and write it to the project's .agent-factory/setup.sh with LF line endings and executable permissions.",
+      "plannedVerification": "register-with-factory-ac2-test.ps1 asserts the project setup.sh exists, has the Unix user-execute bit, and contains the factory hook-path command.",
+      "materialConcerns": ["release impact: executable mode must survive checkout and scaffold copying"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-3",
+      "criterion": "After the registration step runs, a shell script that validates C# source formatting is present in the scaffolded project and is executable",
+      "plannedImplementation": "Read the factory .agent-factory/lint.sh and write it to the project's .agent-factory/lint.sh with LF line endings and executable permissions.",
+      "plannedVerification": "register-with-factory-ac3-test.ps1 asserts the project lint.sh exists, has the Unix user-execute bit, and contains the factory dotnet-format validation command.",
+      "materialConcerns": ["release impact: executable mode and POSIX line endings must survive scaffold copying"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-4",
+      "criterion": "The scaffolded project does not contain a contract rules document, even when one exists in the factory source — each repository accumulates its own rules from its own dispatch history",
+      "plannedImplementation": "Restrict the registration copy list to the policy, setup script, and lint script, explicitly excluding .agent-factory/contract-rules.md.",
+      "plannedVerification": "register-with-factory-ac4-test.ps1 seeds contract-rules.md in the factory fixture, runs registration, and asserts that the project destination does not contain that file.",
+      "materialConcerns": ["public-contract compatibility: project-local dispatch history must not be overwritten or seeded from the factory"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-5",
+      "criterion": "Running the registration step a second time on an already-registered project changes no files and does not fail",
+      "plannedImplementation": "Make registration skip each destination file that already exists and complete successfully without overwriting it.",
+      "plannedVerification": "register-with-factory-ac5-test.ps1 registers once, records every project file's relative path and SHA-256 hash, registers again, and asserts the second invocation succeeds and the file snapshot is unchanged.",
+      "materialConcerns": ["data loss: existing project registration files must not be overwritten"],
+      "verificationStatus": "planned",
+      "comparison": true,
+      "comparisonObservation": {
+        "firstObservation": "After the first registration, the project has a recorded set of registration files and hashes.",
+        "whenHeldValueAbsent": "If the first snapshot has no files, the test would not establish registration; the fixture and first invocation require the implementation to create the registration files before the second comparison."
+      }
+    },
+    {
+      "id": "AC-6",
+      "criterion": "When the factory source cannot be reached, the registration step reports that it was skipped and exits without error, allowing the scaffold to continue",
+      "plannedImplementation": "Catch unavailable local or gh-backed factory source errors, emit a clear skip message, and return successfully.",
+      "plannedVerification": "register-with-factory-ac6-test.ps1 invokes registration with a missing factory directory, observes normal completion, and asserts the captured output contains a skip indication.",
+      "materialConcerns": ["release impact: unauthenticated or unavailable factory access must not block scaffolding"],
+      "verificationStatus": "planned",
+      "comparison": false
+    }
+  ]
+}
