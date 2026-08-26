@@ -5,7 +5,14 @@
 # defaultProvider, baseBranch, authorizedMaintainers, authorizedTeam,
 # concurrencyLimit, priority, retry. Unknown keys are rejected.
 version: 1
-enabled: true
+# Disabled deliberately. This repository's tests are PowerShell (plugin/template-tests/*-test.ps1,
+# dotnet/template-tests/analyzer-drift.ps1) run under pwsh on windows-latest, and the factory's
+# runner is an Alpine Linux image carrying git, curl, jq, gh, bash, coreutils, dotnet and node --
+# no PowerShell. A .ps1 test command therefore exits 127 in the runner no matter what the planner
+# writes, which is exactly how issue #27 failed. Two planner passes were spent before that was
+# understood. Re-enable when either the runner image carries pwsh or this repository grows tests
+# the runner can execute.
+enabled: false
 defaultProvider: opencode
 baseBranch: main
 
