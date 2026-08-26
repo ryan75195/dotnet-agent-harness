@@ -126,7 +126,7 @@ same instance ID. While it is still in flight, the same POST returns
 
 ## Guardrails
 
-Beyond the 15 analyzers shared with the other templates in this repo (method length, constructor
+Beyond the 16 analyzers shared with the other templates in this repo (method length, constructor
 shape, no comments, no tuple returns, and so on), this template adds three durable-specific
 rules, all at error severity:
 

@@ -16,7 +16,7 @@ commit → PR) and four git/Claude hooks enforcing it.
 
 | Stack | Where | Templates | Extras |
 |---|---|---|---|
-| .NET 10 | [`dotnet/`](dotnet/README.md) | `cli`, `etl-api`, `mcp`, `durable` | 15 Roslyn analyzers shared by all four (CI0001–CI0015) + 3 durable-only (CI0016–CI0018), 5 architecture-test fixtures shared by all four + 1 durable-only |
+| .NET 10 | [`dotnet/`](dotnet/README.md) | `cli`, `etl-api`, `mcp`, `durable` | 16 Roslyn analyzers shared by all four (CI0001–CI0015 and CI0019) + 3 durable-only (CI0016–CI0018), 5 architecture-test fixtures shared by all four + 1 durable-only |
 | Expo / React Native | [`expo/`](expo/) | `app`, `tv-app` | Strict TS + custom ESLint rules + dependency-cruiser + coverage gates, RevenueCat baked in, staged iOS App Store **submission workflow** driven by Claude skills (SUBMISSION.md state machine) |
 
 ## .NET

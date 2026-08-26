@@ -43,7 +43,26 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 - **Where work belongs:** anything touching the outside world (an HTTP call, a queue, a database, a clock, randomness) goes in an **activity**, which calls a `Core` service to do it. Orchestrators only decide *what* to call and in *what order*. Activities may inject dependencies through their constructor and accept a `CancellationToken`; orchestrators may do neither — both are means for an orchestrator to reach outside its own replay-safe world.
 - **`Core`** splits `Models/` (DTOs — safe for an orchestrator to reference) from `Interfaces/` and `Services/` (behaviour — never safe). Orchestrations may depend on `Core.Models` but **not** on `Core.Interfaces`/`Core.Services`; `DurableFunctionTests` enforces this structurally by asserting the `Orchestrations` namespace has no dependency on either. This split is load-bearing, not cosmetic: the orchestrator classes are `static`, so they hold no instance state for CI0017 to catch, and a static orchestrator that reaches a service through a local variable with no `await` is invisible to CI0016 too (it only inspects `await` expressions). The namespace-dependency rule is the only guardrail that would catch that case.
 - **Architecture tests** in `tests/SampleDurable.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `AddCoreServices()`), naming, one-public-type-per-file, and the durable-specific rules above (`DurableFunctionTests`).
-- **Custom analyzers** in `src/SampleDurable.Analyzers/` enforce CI0001–CI0018: the 15 shared with the other templates (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc.) plus three durable-only rules:
+- **Custom analyzers** in `src/SampleDurable.Analyzers/` enforce these 16 shared rules:
+  - `CI0001` `NoTupleReturnAnalyzer`
+  - `CI0002` `TestCoverageAnalyzer`
+  - `CI0003` `ConstructorDependencyAnalyzer`
+  - `CI0004` `PublicMethodCountAnalyzer`
+  - `CI0005` `ConstructorParameterCountAnalyzer`
+  - `CI0006` `NestedPublicTypeAnalyzer`
+  - `CI0007` `MethodLengthAnalyzer`
+  - `CI0008` `PragmaWarningDisableAnalyzer`
+  - `CI0009` `NotNullOnlyAssertionAnalyzer`
+  - `CI0010` `NoAssertIgnoreAnalyzer`
+  - `CI0011` `NoAnonymousSerializationAnalyzer`
+  - `CI0012` `NoChainedNullInArgumentAnalyzer`
+  - `CI0013` `NoCommentsAnalyzer`
+  - `CI0014` `ClassLengthAnalyzer`
+  - `CI0015` `SyncOverAsyncAnalyzer`
+  - `CI0019` `TestFixtureNamesSolutionTypeAnalyzer`
+  - `CI0016` `OrchestratorNonDurableAwaitAnalyzer` (durable-only)
+  - `CI0017` `OrchestratorDependencyAnalyzer` (durable-only)
+  - `CI0018` `DurableFunctionNameLiteralAnalyzer` (durable-only)
   - **CI0016** — an orchestrator method may only `await` a durable operation (something on `TaskOrchestrationContext`/`Microsoft.DurableTask.*`), never a raw `Task`. **Wants instead:** call the durable equivalent (`context.CreateTimer` instead of `Task.Delay`, `context.CallActivityAsync` instead of calling a service directly) or move the non-durable work into an activity.
   - **CI0017** — an orchestrator class may hold no instance state (no fields, no constructor) and no **mutable static** state (a static field that is neither `const` nor `readonly`, or a settable static property). **Wants instead:** keep orchestrators `static`, hold shared values as `const` or `static readonly` (the sample's `AgentCompletedEventName` and `DispatchTimeout` are both), and pass anything else as method parameters or through the durable context. The static half matters because "keep orchestrators `static`" otherwise leaves a forker who wants an orchestrator to *remember* something exactly one syntactic option — a mutable static — and it is the wrong one: it is shared across every instance and re-executed on every replay. **Known limitation:** `static readonly` of a mutable type (`static readonly List<T>`, `static readonly Dictionary<K,V>`) is still mutable through its contents, and CI0017 does not catch that — only the binding is checked, not the type's deep immutability.
   - **CI0018** — `CallActivityAsync`/`CallSubOrchestratorAsync` must be called with `nameof(...)`, never a string literal. **Wants instead:** `context.CallActivityAsync(nameof(DispatchAgentActivity), ...)`, so a rename of the activity/orchestrator class is a compile error at the call site instead of a silent runtime mismatch.
