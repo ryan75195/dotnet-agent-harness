@@ -21,9 +21,6 @@ jobs:
         shell: pwsh
         run: ./plugin/template-tests/stamp-test.ps1
 
-      - name: Factory registration tests
-        shell: pwsh
-        run: ./plugin/template-tests/register-with-factory-test.ps1
 
       - name: Annotation hook tests
         shell: pwsh
@@ -44,3 +41,17 @@ jobs:
       - name: Capture-review tests
         shell: pwsh
         run: ./plugin/template-tests/capture-review-test.ps1
+
+  # The registration tests assert POSIX executable bits on the setup and lint scripts, and
+  # [IO.File]::GetUnixFileMode throws "Unix file modes are not supported on this platform"
+  # on Windows. The artifacts these scripts produce are consumed by a Linux runner, so the
+  # mode is a real requirement rather than an incidental one -- the tests belong on Linux,
+  # not weakened to keep a Windows job green.
+  plugin-validate-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Factory registration tests
+        shell: pwsh
+        run: ./plugin/template-tests/register-with-factory-test.ps1

@@ -1,12 +1,12 @@
 #!/usr/bin/env pwsh
 $ErrorActionPreference = 'Stop'
 $tests = @(
-    'register-with-factory-ac1-test.ps1',
-    'register-with-factory-ac2-test.ps1',
-    'register-with-factory-ac3-test.ps1',
-    'register-with-factory-ac4-test.ps1',
-    'register-with-factory-ac5-test.ps1',
-    'register-with-factory-ac6-test.ps1'
+    'register-with-factory-policy-file-test.ps1',
+    'register-with-factory-setup-script-test.ps1',
+    'register-with-factory-lint-script-test.ps1',
+    'register-with-factory-no-contract-rules-test.ps1',
+    'register-with-factory-rerun-test.ps1',
+    'register-with-factory-unreachable-source-test.ps1'
 )
 $failures = 0
 foreach ($test in $tests) {
