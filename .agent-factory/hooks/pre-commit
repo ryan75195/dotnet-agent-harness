@@ -1,0 +1,33 @@
+#!/bin/sh
+# Factory gate: the fast half of what CI checks, so a dispatch cannot open a pull
+# request against a tree that fails it. The template scaffolding suites are
+# deliberately excluded -- they install templates and build whole projects, which
+# takes minutes and belongs on a pull request rather than on every commit.
+set -eu
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+run_check() {
+  name="$1"
+  script="$2"
+  shift 2
+  echo "--- $name ---"
+  if ! pwsh -NoProfile -File "$script" "$@"; then
+    echo "$name FAILED. Fix it before committing."
+    exit 1
+  fi
+}
+
+run_check "Plugin manifest and skills" ./plugin/template-tests/validate-plugin.ps1 -RequireFull
+run_check "Analyzer drift" ./dotnet/template-tests/analyzer-drift.ps1
+run_check "Stamp and resolve-repo" ./plugin/template-tests/stamp-test.ps1
+run_check "Annotation hooks" ./plugin/template-tests/annotate-test.ps1
+run_check "Update scripts" ./plugin/template-tests/update-scripts-test.ps1
+run_check "Feedback kinds" ./plugin/template-tests/feedback-kind-test.ps1
+run_check "Fold events" ./plugin/template-tests/fold-events-test.ps1
+run_check "Capture review" ./plugin/template-tests/capture-review-test.ps1
+run_check "Factory registration" ./plugin/template-tests/register-with-factory-test.ps1
+
+echo "=== All checks passed ==="
+exit 0
