@@ -1,0 +1,11 @@
+{
+  "testGateable": true,
+  "testCommand": "pwsh -NoProfile -Command '$ErrorActionPreference = \"Continue\"; $failed = 0; foreach ($test in @(\"./new-project/tests/e2e-registration-commit-test.ps1\", \"./new-project/tests/e2e-registration-unreachable-test.ps1\", \"./new-project/tests/e2e-dotnet-cli.ps1\")) { try { & $test } catch { $failed = 1; Write-Error $_ } }; exit $failed'",
+  "rationale": "The contract drives the real scaffold dispatcher through a reachable-source fixture, an unreachable-source fixture, and the existing end-to-end verification. It checks that registration files are committed before setup creates the initial commit, that unavailable registration is non-blocking and reported, and that the established scaffold and stamp checks still pass while registration is attempted.",
+  "implementationPaths": [],
+  "declaredRedTests": [
+    "Scaffold_registration_files_are_in_the_initial_commit",
+    "Scaffold_succeeds_and_reports_registration_skipped_when_source_is_unreachable",
+    "Scaffold_reports_that_registration_was_attempted"
+  ]
+}

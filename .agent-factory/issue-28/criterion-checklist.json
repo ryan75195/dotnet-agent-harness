@@ -1,0 +1,31 @@
+{
+  "criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "A project created through the scaffold dispatcher contains the factory policy file in its initial git commit",
+      "plannedImplementation": "Invoke the existing plugin/scripts/register-with-factory.ps1 from new-project.ps1 after scaffolding and stamping, but before setup.ps1 initializes and commits the project.",
+      "plannedVerification": "new-project/tests/e2e-registration-commit-test.ps1 runs the dispatcher with a reachable temporary gh fixture, reads the first commit from the created repository, and asserts that .github/agent-factory.yml can be read from that commit.",
+      "materialConcerns": ["release impact: registration timing determines whether files enter the initial commit"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-2",
+      "criterion": "When factory registration cannot reach its source during scaffold, the project is still created successfully and reports that registration was skipped",
+      "plannedImplementation": "Call the registration script without making its source failure fatal, relying on its supported zero-exit skip behavior before setup.ps1 continues.",
+      "plannedVerification": "new-project/tests/e2e-registration-unreachable-test.ps1 forces gh to return failure, asserts the dispatcher exits successfully, asserts the destination exists, and asserts the captured scaffold output contains the unique Factory registration skipped message.",
+      "materialConcerns": ["release impact: unauthenticated or unavailable factory access must not block scaffolding"],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-3",
+      "criterion": "The existing end-to-end scaffold verification still passes after the registration step is integrated — no regression in basic scaffold functionality",
+      "plannedImplementation": "Preserve the existing dispatcher scaffold, stamp, and verification flow while inserting the registration attempt at the required pre-setup point.",
+      "plannedVerification": "The existing new-project/tests/e2e-dotnet-cli.ps1 check is exercised directly; it continues asserting successful dispatcher completion, project creation, and the cli harness stamp, and additionally asserts the unique registration-attempt message appeared in the same output.",
+      "materialConcerns": ["public-contract compatibility: existing scaffold verification and output must remain successful while adding registration"],
+      "verificationStatus": "planned",
+      "comparison": false
+    }
+  ]
+}

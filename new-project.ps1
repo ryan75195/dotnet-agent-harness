@@ -76,6 +76,10 @@ try {
 
     Push-Location $ctx.Dest
     try {
+        $registrationScript = Join-Path $ctx.Repo 'plugin/scripts/register-with-factory.ps1'
+        Write-Output 'Registering with agent-factory...'
+        & $registrationScript -ProjectDir $ctx.Dest
+
         & (Join-Path $ctx.Dest 'setup.ps1')
         if ($LASTEXITCODE) { throw "setup.ps1 failed (exit $LASTEXITCODE) - see the message above (commonly a missing git identity)." }
 
