@@ -35,7 +35,23 @@ Every change follows this loop. None of these steps are optional — hooks enfor
 - **Solution:** `SampleMcp.slnx`, .NET 10, three `src/` projects (`Core`, `Server`, `Analyzers`) and four `tests/` projects (`Tests.Unit`, `Tests.Integration`, `Tests.Architecture`, `Tests.Analyzers`).
 - **`Server`** is an ASP.NET Core host that serves MCP over HTTP/streamable transport (`app.MapMcp()` in `Program.cs`). Tools live under `Tools/` (`[McpServerToolType]`), resources under `Resources/` (`[McpServerResourceType]`), prompts under `Prompts/` (`[McpServerPromptType]`) — all discovered from the assembly automatically, no manual registration. Business logic belongs in `Core`; MCP types should stay thin adapters over `Core` services, the same way a controller stays thin over application services.
 - **Architecture tests** in `tests/SampleMcp.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
-- **Custom analyzers** in `src/SampleMcp.Analyzers/` enforce CI0001-CI0013 (method length, ctor param count, no tuple returns, no anonymous serialization, no comments, etc).
+- **Custom analyzers** in `src/SampleMcp.Analyzers/` enforce these 16 shared rules:
+  - `CI0001` `NoTupleReturnAnalyzer`
+  - `CI0002` `TestCoverageAnalyzer`
+  - `CI0003` `ConstructorDependencyAnalyzer`
+  - `CI0004` `PublicMethodCountAnalyzer`
+  - `CI0005` `ConstructorParameterCountAnalyzer`
+  - `CI0006` `NestedPublicTypeAnalyzer`
+  - `CI0007` `MethodLengthAnalyzer`
+  - `CI0008` `PragmaWarningDisableAnalyzer`
+  - `CI0009` `NotNullOnlyAssertionAnalyzer`
+  - `CI0010` `NoAssertIgnoreAnalyzer`
+  - `CI0011` `NoAnonymousSerializationAnalyzer`
+  - `CI0012` `NoChainedNullInArgumentAnalyzer`
+  - `CI0013` `NoCommentsAnalyzer`
+  - `CI0014` `ClassLengthAnalyzer`
+  - `CI0015` `SyncOverAsyncAnalyzer`
+  - `CI0019` `TestFixtureNamesSolutionTypeAnalyzer`
 
 ## Testing judgment calls
 

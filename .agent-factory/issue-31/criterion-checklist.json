@@ -1,0 +1,60 @@
+{
+  "criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "Each template's guidance file lists every analyzer that template ships, with none missing and none listed that it does not ship.",
+      "plannedImplementation": "Update dotnet/templates/cli/CLAUDE.md, dotnet/templates/etl-api/CLAUDE.md, dotnet/templates/mcp/CLAUDE.md, and dotnet/templates/durable/CLAUDE.md so each analyzer list exactly matches the analyzer source files in that template, including the durable-only rules.",
+      "plannedVerification": "By inspection, enumerate the analyzer source files under each template's src/*Analyzers directory and compare the exact analyzer names and counts with the corresponding CLAUDE.md list; verify every source has one documentation entry and every entry has one source.",
+      "materialConcerns": [
+        "public-contract compatibility",
+        "release impact"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-2",
+      "criterion": "The analyzer counts recorded in the repository documentation match the number of analyzers actually present.",
+      "plannedImplementation": "Correct the analyzer count statements in dotnet/README.md to reflect the source inventories: fifteen shared analyzers and eighteen in the durable template, without adding, removing, or changing analyzer code.",
+      "plannedVerification": "By inspection, count the analyzer source files in the cli, etl-api, mcp, and durable template analyzer directories, then compare those counts with every analyzer count stated in dotnet/README.md; verify the shared count is 15 and the durable total is 18.",
+      "materialConcerns": [
+        "release impact",
+        "public-contract compatibility"
+      ],
+      "verificationStatus": "planned",
+      "comparison": true,
+      "comparisonObservation": {
+        "firstObservation": "The documentation's first recorded analyzer count is compared with the current source inventory and must report fifteen shared analyzers and eighteen durable analyzers.",
+        "whenHeldValueAbsent": "If the documentation has no analyzer count, inspection must identify the missing count and the criterion remains unsatisfied until the source-derived counts are recorded."
+      }
+    },
+    {
+      "id": "AC-3",
+      "criterion": "The counts distinguish the analyzers shared across every template from those a single template adds, since those numbers differ.",
+      "plannedImplementation": "Revise dotnet/README.md to state the shared analyzer count separately from the durable template's additional analyzer count and total, making the cross-template distinction explicit.",
+      "plannedVerification": "By inspection, compare the analyzer filename sets across all four template directories and verify the documentation identifies the fifteen-file intersection, the three durable-only files, and the resulting eighteen-file durable total; confirm the other templates contain only the shared set.",
+      "materialConcerns": [
+        "release impact",
+        "public-contract compatibility"
+      ],
+      "verificationStatus": "planned",
+      "comparison": true,
+      "comparisonObservation": {
+        "firstObservation": "The first cross-template inventory observation establishes a fifteen-analyzer shared set; the durable inventory then observes three additional analyzers and a distinct total of eighteen.",
+        "whenHeldValueAbsent": "If no shared-versus-additional distinction is documented, the reader cannot determine why template totals differ, so the criterion is unsatisfied even when a single total is present."
+      }
+    },
+    {
+      "id": "AC-4",
+      "criterion": "A reader following the documentation to find an analyzer finds it where the documentation says it is.",
+      "plannedImplementation": "Use stable analyzer names and template-relative source locations in the guidance lists, and ensure the README's shared and durable-only descriptions point to the corresponding template analyzer directories without changing source layout.",
+      "plannedVerification": "For every analyzer name listed in each CLAUDE.md and each shared or durable-only analyzer named in dotnet/README.md, follow the documented template and directory location and confirm the matching source file exists there; verify the durable-only names resolve only in durable.",
+      "materialConcerns": [
+        "public-contract compatibility",
+        "release impact"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    }
+  ]
+}
