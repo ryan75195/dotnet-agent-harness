@@ -1,0 +1,67 @@
+{
+  "criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "After a clean `expo prebuild`, the Gradle wrapper is pinned to 8.14.3 without any manual step.",
+      "plannedImplementation": "Implement the body of expo/templates/tv-app/plugins/with-tv-sideload-patches.js (already registered last in both dev and production plugin lists in app.config.js) so that during prebuild it rewrites android/gradle/wrapper/gradle-wrapper.properties, replacing every distributionUrl line with distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-bin.zip. A dangerous mod (the gradleProperties base mod only manages android/gradle.properties, not the wrapper file) is the expected mechanism, but the tests pin only the generated file content.",
+      "plannedVerification": "expo/template-tests/prebuild-plugin/tests/gradle-wrapper-pin.test.js seeds a pristine prebuild fixture whose wrapper properties carry a Gradle 9 distributionUrl, evaluates the template's app.config.js through getConfig + compileModsAsync against the fixture, and asserts the generated gradle-wrapper.properties contains exactly one distributionUrl line equal to the 8.14.3 URL. Red at base because the declared plugin stub throws.",
+      "materialConcerns": [
+        "release impact: the 8.14.3 pin is load-bearing for react-native-tvos 0.83 (its gradle plugin references JvmVendorSpec.IBM_SEMERU, removed in Gradle 9); the tests pin the version the ticket mandates"
+      ],
+      "verificationStatus": "planned",
+      "comparison": true,
+      "comparisonObservation": {
+        "firstObservation": "A clean Expo SDK 55 prebuild writes a Gradle 9 wrapper distributionUrl (per the template README: 'The prebuild template writes a Gradle 9 wrapper'), which the fixture seeds as the previously held value.",
+        "whenHeldValueAbsent": "If a future prebuild template emitted no distributionUrl line, the plugin must still write the pinned line; the exactly-one-line assertion covers that case by requiring precisely one distributionUrl equal to the 8.14.3 URL afterwards."
+      }
+    },
+    {
+      "id": "AC-2",
+      "criterion": "After a clean `expo prebuild`, the `@UnstableReactNativeAPI` Kotlin opt-in is present without any manual step.",
+      "plannedImplementation": "Implement the body of the declared plugin so that during prebuild it registers the KotlinCompile freeCompilerArgs opt-in block (-opt-in=com.facebook.react.common.annotations.UnstableReactNativeAPI) in the generated android/build.gradle, via withProjectBuildGradle or equivalent, without changing what the existing manual patch does.",
+      "plannedVerification": "expo/template-tests/prebuild-plugin/tests/kotlin-opt-in.test.js evaluates the template config against the pristine fixture and asserts the generated android/build.gradle contains the -opt-in=com.facebook.react.common.annotations.UnstableReactNativeAPI compiler argument exactly once and references KotlinCompile. Red at base because the declared plugin stub throws.",
+      "materialConcerns": [
+        "public-contract compatibility: the opt-in string is fixed by expo-video's VideoModule annotation; the tests assert the argument exactly once so a reworded but equivalent gradle snippet still passes while a duplicated one fails"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-3",
+      "criterion": "After a clean `expo prebuild`, cleartext traffic is permitted for the hosts that need it, without any manual step.",
+      "plannedImplementation": "Implement the body of the declared plugin so that during prebuild it sets android:usesCleartextTraffic=\"true\" on the <application> element of the generated AndroidManifest.xml, via withAndroidManifest. This reproduces the existing manual patch; it does not change what the patch does.",
+      "plannedVerification": "expo/template-tests/prebuild-plugin/tests/cleartext-traffic.test.js evaluates the template config against the pristine fixture and asserts the generated android/app/src/main/AndroidManifest.xml has exactly one <application> element carrying android:usesCleartextTraffic=\"true\". Red at base because the declared plugin stub throws. Note for the implementer: the template README's constraint (open-source-university-tv#19) prefers a scoped network-security-config over the app-wide flag; the scoped form is a follow-up, and the ticket's out-of-scope rule keeps the app-wide flag here — say so explicitly in the implementation rather than silently treating them as equivalent.",
+      "materialConcerns": [
+        "security boundaries: usesCleartextTraffic disables transport security app-wide; a scoped network-security-config (open-source-university-tv#19) is the preferred long-term shape and would be a deliberate follow-up, not this work item"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-4",
+      "criterion": "Running prebuild twice produces the same result as running it once: the plugin is idempotent and does not accumulate duplicate entries.",
+      "plannedImplementation": "Make every patch set-or-replace rather than append: replace distributionUrl lines with the single pinned URL, add the Kotlin opt-in block only when absent, and assign (not merge) the manifest attribute, so evaluating the plugin pipeline a second time over an already-prebuilt android/ directory is a no-op.",
+      "plannedVerification": "expo/template-tests/prebuild-plugin/tests/prebuild-idempotency.test.js runs the full evaluation once on a pristine fixture, snapshots the three generated files, runs the evaluation again on a second fixture that is then re-evaluated without resetting the android/ output (the non-clean second prebuild), and asserts the second outputs are byte-identical to the first. It also asserts the first prebuild already produced exactly one opt-in. Red at base; validated in the prototype to fail for an append-only plugin ('android/build.gradle differs between the first and the second prebuild').",
+      "materialConcerns": [
+        "data loss: an appending plugin corrupts the generated gradle files on the second prebuild, producing build failures invisible in the repository"
+      ],
+      "verificationStatus": "planned",
+      "comparison": true,
+      "comparisonObservation": {
+        "firstObservation": "The first evaluation over a pristine prebuild fixture produces the three patched native files, which are snapshotted as the reference result.",
+        "whenHeldValueAbsent": "If the second evaluation ran against a pristine (reset) android/ directory the comparison would be vacuous, so the test deliberately re-evaluates over the already-patched output; a plugin with no accumulated state produces identical bytes."
+      }
+    },
+    {
+      "id": "AC-5",
+      "criterion": "No patch remains that a developer is expected to apply by hand.",
+      "plannedImplementation": "Rewrite the 'Sideload builds (local prebuild)' section of expo/templates/tv-app/README.md to describe the automatic plugin behaviour and delete the three numbered manual patch instructions (wrapper properties edit, build.gradle append, manifest attribute edit), including the 'must be re-applied after every fresh prebuild' framing.",
+      "plannedVerification": "expo/template-tests/prebuild-plugin/tests/readme-manual-patches.test.js asserts the template README no longer contains the imperative hand-application instructions ('must be re-applied after every fresh prebuild', 'Append to `android/build.gradle`', '`android/gradle/wrapper/gradle-wrapper.properties` set', 'Add `android:usesCleartextTraffic=\"true\"` to'). Red at base because the README still documents the manual steps.",
+      "materialConcerns": [
+        "public-contract compatibility: template consumers follow the README; stale manual instructions would re-introduce the invisible-build-failure failure mode this ticket removes"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    }
+  ]
+}

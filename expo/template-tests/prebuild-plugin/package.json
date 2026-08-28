@@ -1,0 +1,13 @@
+{
+  "name": "tv-prebuild-plugin-contract-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Contract tests for the tv-app template prebuild config plugin",
+  "scripts": {
+    "test": "node run-tests.js"
+  },
+  "devDependencies": {
+    "@expo/config": "55.0.19",
+    "@expo/config-plugins": "55.0.11"
+  }
+}

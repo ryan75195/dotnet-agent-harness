@@ -1,0 +1,22 @@
+{
+  "testGateable": true,
+  "testCommand": "sh -c 'cd expo/template-tests/prebuild-plugin && (test -d node_modules || npm ci --no-audit --no-fund) && node run-tests.js'",
+  "rationale": "The contract evaluates the tv-app template's app.config.js through the real Expo config-plugin machinery (@expo/config getConfig plus @expo/config-plugins compileModsAsync) against a pristine-prebuild fixture, then asserts on the generated native configuration: exactly one Gradle 8.14.3 distributionUrl in android/gradle/wrapper/gradle-wrapper.properties, exactly one @UnstableReactNativeAPI Kotlin opt-in wired to KotlinCompile in android/build.gradle, android:usesCleartextTraffic=\"true\" on the <application> element, byte-identical output when prebuild runs twice, and no hand-applied patch instructions left in the README. The plugin surface expo/templates/tv-app/plugins/with-tv-sideload-patches.js is declared as a throwing stub and its registration in both dev and production plugin lists is pre-wired in app.config.js, so the gate is red at base because the behaviour is missing (the stub throws and the README still documents the manual steps), not because of setup breakage. Validated in a prototype: a correct plugin plus README cleanup turns all six tests green, an append-only plugin is caught by the idempotency test, and dev-only or missing wiring is caught by the registration and mod tests.",
+  "shapePaths": [
+    "expo/templates/tv-app/plugins/with-tv-sideload-patches.js",
+    "expo/templates/tv-app/app.config.js"
+  ],
+  "shapePathCitations": {
+    "expo/templates/tv-app/plugins/with-tv-sideload-patches.js": "AC-1",
+    "expo/templates/tv-app/app.config.js": "AC-1"
+  },
+  "implementationPaths": [],
+  "declaredRedTests": [
+    "Gradle_wrapper_is_pinned_to_8_14_3_after_a_clean_prebuild",
+    "Kotlin_opt_in_for_UnstableReactNativeAPI_is_present_after_a_clean_prebuild",
+    "Cleartext_traffic_is_permitted_after_a_clean_prebuild",
+    "Second_prebuild_over_a_prebuilt_project_matches_the_first_prebuild",
+    "Readme_no_longer_documents_hand_applied_sideload_patches",
+    "Sideload_plugin_is_registered_for_dev_and_production_prebuilds"
+  ]
+}

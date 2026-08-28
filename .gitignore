@@ -4,6 +4,8 @@
 
 template-tests/scratch/
 
+node_modules/
+
 bin/
 obj/
 
