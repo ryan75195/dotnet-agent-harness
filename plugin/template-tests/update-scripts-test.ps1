@@ -4,7 +4,7 @@ if ($null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope
 }
 
 $pluginScripts = Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts'
-$work = Join-Path $env:TEMP 'agent-harness-update-test'
+$work = Join-Path ([System.IO.Path]::GetTempPath()) 'agent-harness-update-test'
 if (Test-Path $work) { Remove-Item -Recurse -Force $work }
 New-Item -ItemType Directory $work | Out-Null
 
@@ -27,9 +27,9 @@ git -C $repo commit -qm v1
 $baseCommit = (git -C $repo rev-parse HEAD).Trim()
 
 $proj = Join-Path $work 'MyApp'
-robocopy $tpl $proj /E /NFL /NDL /NJH /NJS | Out-Null
-$global:LASTEXITCODE = 0
-Get-ChildItem $proj -Recurse -File | ForEach-Object {
+New-Item -ItemType Directory $proj | Out-Null
+Copy-Item (Join-Path $tpl '*') $proj -Recurse -Force
+Get-ChildItem $proj -Recurse -File -Force | ForEach-Object {
     $c = [IO.File]::ReadAllText($_.FullName)
     $u = $c.Replace('AppTemplate', 'MyApp')
     if ($u -ne $c) { [IO.File]::WriteAllText($_.FullName, $u) }
