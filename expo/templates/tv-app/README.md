@@ -49,40 +49,30 @@ separate release checklist.
 
 ## Sideload builds (local prebuild)
 
-`expo prebuild` regenerates the gitignored `android/` directory from scratch,
-so all three patches below must be re-applied after every fresh prebuild
-before running `gradlew assembleRelease` for a sideloaded build.
+`expo prebuild` regenerates the gitignored `android/` directory from scratch.
+The bundled config plugin `plugins/with-tv-sideload-patches.js`, wired into
+`app.config.js`, applies the three sideload patches during every prebuild, so a
+fresh prebuild is immediately ready for `gradlew assembleRelease`. The plugin
+sets values rather than appending them, so re-running prebuild never
+accumulates duplicate entries.
 
-1. Pin Gradle to 8.14.3. The prebuild template writes a Gradle 9 wrapper, but
-   the react-native-tvos 0.83 gradle plugin references
-   `JvmVendorSpec.IBM_SEMERU`, which Gradle 9 removed, so `assembleRelease`
-   fails with `Class org.gradle.jvm.toolchain.JvmVendorSpec does not have
-   member field 'IBM_SEMERU'`. In
-   `android/gradle/wrapper/gradle-wrapper.properties` set:
+The patches it applies:
 
-   ```properties
-   distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-bin.zip
-   ```
-
-2. Opt in to the unstable React Native API for Kotlin. expo-video's
-   `VideoModule` is annotated `@UnstableReactNativeAPI`, an opt-in annotation
-   at error level, and the expo autolinking plugin does not pass the opt-in
-   when compiling against the TV fork, so `:expo:compileReleaseKotlin` fails
-   on the generated `ExpoModulesPackageList.kt`. Append to
-   `android/build.gradle`:
-
-   ```gradle
-   subprojects {
-     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-       compilerOptions {
-         freeCompilerArgs.add("-opt-in=com.facebook.react.common.annotations.UnstableReactNativeAPI")
-       }
-     }
-   }
-   ```
-
-3. Allow cleartext traffic for LAN APIs. Android API 28+ blocks cleartext
-   HTTP, so a sideloaded build pointed at a development API on the local
-   network fails every request. Add `android:usesCleartextTraffic="true"` to
-   the `<application>` element in
-   `android/app/src/main/AndroidManifest.xml`.
+- Pins the Gradle wrapper to 8.14.3. The prebuild template writes a Gradle 9
+  wrapper, but the react-native-tvos 0.83 gradle plugin references
+  `JvmVendorSpec.IBM_SEMERU`, which Gradle 9 removed, so `assembleRelease`
+  fails with `Class org.gradle.jvm.toolchain.JvmVendorSpec does not have
+  member field 'IBM_SEMERU'` on an unpinned wrapper.
+- Adds `-opt-in=com.facebook.react.common.annotations.UnstableReactNativeAPI`
+  to the Kotlin compile arguments in `android/build.gradle`. expo-video's
+  `VideoModule` is annotated `@UnstableReactNativeAPI`, an opt-in annotation
+  at error level, and the expo autolinking plugin does not pass the opt-in
+  when compiling against the TV fork, so `:expo:compileReleaseKotlin` fails on
+  the generated `ExpoModulesPackageList.kt` without it.
+- Permits cleartext HTTP on the generated `<application>` element. Android API
+  28+ blocks cleartext, so a sideloaded build pointed at a development API on
+  the local network fails every request without it. This deliberately keeps
+  the app-wide flag from the previous manual patch instead of a scoped
+  network-security-config limited to the hosts that need it; scoping the rule
+  changes what the patch does and remains tracked in
+  open-source-university-tv#19.

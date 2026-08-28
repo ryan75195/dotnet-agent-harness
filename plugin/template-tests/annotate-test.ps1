@@ -1,19 +1,21 @@
 $ErrorActionPreference = 'Stop'
 
 $pluginRoot = Split-Path -Parent $PSScriptRoot
-$work = Join-Path $env:TEMP 'agent-harness-annotate-test'
+$work = Join-Path ([System.IO.Path]::GetTempPath()) 'agent-harness-annotate-test'
 if (Test-Path $work) { Remove-Item -Recurse -Force $work }
 New-Item -ItemType Directory (Join-Path $work 'feedback') -Force | Out-Null
 
 function Assert([bool]$Cond, [string]$Msg) { if (-not $Cond) { throw "ASSERT FAILED: $Msg" } }
 
+$psHost = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
+
 $payload = '{"tool_name":"Bash","tool_response":{"stdout":"LINT FAILED\nHARNESS-FEEDBACK: event ab12cd logged - append a one-line note on what this code was trying to do."}}'
-$result = $payload | powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $pluginRoot 'hooks/feedback-annotate.ps1') | Out-String
+$result = $payload | & $psHost -NoProfile -ExecutionPolicy Bypass -File (Join-Path $pluginRoot 'hooks/feedback-annotate.ps1') | Out-String
 Assert ($result -match 'ab12cd') 'annotate hook must surface the event id'
 Assert ($result -match 'additionalContext') 'annotate hook must emit additionalContext JSON'
 Assert ($result -match 'harness-note.ps1') 'annotate hook must point at harness-note.ps1'
 
-$quiet = '{"tool_name":"Bash","tool_response":{"stdout":"all good"}}' | powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $pluginRoot 'hooks/feedback-annotate.ps1') | Out-String
+$quiet = '{"tool_name":"Bash","tool_response":{"stdout":"all good"}}' | & $psHost -NoProfile -ExecutionPolicy Bypass -File (Join-Path $pluginRoot 'hooks/feedback-annotate.ps1') | Out-String
 Assert (-not ($quiet -match 'additionalContext')) 'no marker means no output'
 
 $env:AGENT_HARNESS_FEEDBACK_DIR = Join-Path $work 'feedback'

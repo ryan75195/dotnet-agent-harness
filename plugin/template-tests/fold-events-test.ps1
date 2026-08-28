@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $pluginScripts = Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts'
-$work = Join-Path $env:TEMP 'agent-harness-fold-test'
+$work = Join-Path ([System.IO.Path]::GetTempPath()) 'agent-harness-fold-test'
 if (Test-Path $work) { Remove-Item -Recurse -Force $work }
 New-Item -ItemType Directory $work | Out-Null
 

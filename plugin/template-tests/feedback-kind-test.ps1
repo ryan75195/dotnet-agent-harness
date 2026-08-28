@@ -13,7 +13,7 @@ $h = (Get-FileHash $fb -Algorithm SHA256).Hash
 Assert ((Get-FileHash $cli -Algorithm SHA256).Hash -eq $h) 'cli harness-feedback.sh must match expo'
 Assert ((Get-FileHash $etl -Algorithm SHA256).Hash -eq $h) 'etl-api harness-feedback.sh must match expo'
 
-$work = Join-Path $env:TEMP 'agent-harness-kind-test'
+$work = Join-Path ([System.IO.Path]::GetTempPath()) 'agent-harness-kind-test'
 if (Test-Path $work) { Remove-Item -Recurse -Force $work }
 New-Item -ItemType Directory (Join-Path $work '.githooks') -Force | Out-Null
 $fbDir = Join-Path $work 'fb'

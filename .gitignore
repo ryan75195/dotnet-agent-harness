@@ -4,6 +4,8 @@
 
 template-tests/scratch/
 
+expo/template-tests/prebuild-plugin/node_modules/
+
 bin/
 obj/
 

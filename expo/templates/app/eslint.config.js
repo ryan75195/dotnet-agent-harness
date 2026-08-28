@@ -11,6 +11,7 @@ module.exports = tseslint.config(
       'scripts/**',
       '**/*.config.js',
       'app.config.js',
+      'plugins/**',
       'jest.setup.js',
       '.dependency-cruiser.cjs'
     ]
