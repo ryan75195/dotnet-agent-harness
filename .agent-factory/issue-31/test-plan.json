@@ -1,0 +1,5 @@
+{
+  "testGateable": false,
+  "rationale": "This work item changes only per-template guidance files and repository documentation. Its acceptance criteria are documentation-to-source consistency checks that must be verified by inspecting the four guidance files, the analyzer source inventories, and dotnet/README.md; an automated test would merely restate the documentation or invent a separate source of truth. No production surface or test implementation target is declared.",
+  "declaredRedTests": []
+}
