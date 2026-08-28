@@ -30,8 +30,8 @@ if (isProduction) {
 
 const bundleId = isProduction ? 'com.example.apptemplate' : 'com.example.apptemplate.dev';
 const plugins = isProduction
-  ? ['expo-router', 'expo-apple-authentication', ['@react-native-tvos/config-tv', { isTV: true }]]
-  : ['expo-router', 'expo-dev-client', 'expo-apple-authentication', ['@react-native-tvos/config-tv', { isTV: true }]];
+  ? ['expo-router', 'expo-apple-authentication', ['@react-native-tvos/config-tv', { isTV: true }], './plugins/with-tv-sideload-patches']
+  : ['expo-router', 'expo-dev-client', 'expo-apple-authentication', ['@react-native-tvos/config-tv', { isTV: true }], './plugins/with-tv-sideload-patches'];
 
 module.exports = {
   expo: {

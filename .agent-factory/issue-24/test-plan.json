@@ -1,0 +1,21 @@
+{
+  "testGateable": true,
+  "testCommand": "node expo/template-tests/prebuild-plugin/run-tests.js",
+  "rationale": "The five acceptance criteria describe observable outcomes of `expo prebuild` on the tv-app template, so the contract drives the template's real app.config.js through @expo/config getConfig + @expo/config-plugins compileModsAsync over a pristine prebuild fixture and asserts the generated native configuration (gradle-wrapper.properties, android/build.gradle, AndroidManifest.xml), never the plugin's internals. One behavior-named test file per criterion: AC-1 gradle-wrapper-pin.test.js (exactly one distributionUrl line pinned to gradle-8.14.3-bin.zip), AC-2 kotlin-opt-in.test.js (opt-in flag exactly once, wired to KotlinCompile), AC-3 cleartext-traffic.test.js (usesCleartextTraffic on the single <application> element), AC-4 prebuild-idempotency.test.js (explicit second prebuild over already-patched output is byte-identical to the first, which catches append-only plugins), AC-5 readme-manual-patches.test.js (no hand-applied patch snippets remain in the template README), plus plugin-registered-in-both-configs.test.js (the plugin file exists and is wired into BOTH the dev and production plugin lists, which catches dev-only wiring). At base the command exits 1 with all six tests failing because the declared plugin stub throws and the README instructions still exist; the test names are printed as `Failed <name>` in the gate format. The command is self-contained: it runs its own fixture harness, falls back to `npm ci` in expo/template-tests/prebuild-plugin if node_modules is absent, and never pipes from a quiet-mode command.",
+  "shapePaths": [
+    "expo/templates/tv-app/plugins/with-tv-sideload-patches.js",
+    "expo/templates/tv-app/app.config.js"
+  ],
+  "shapePathCitations": {
+    "expo/templates/tv-app/plugins/with-tv-sideload-patches.js": "AC-1",
+    "expo/templates/tv-app/app.config.js": "AC-1"
+  },
+  "declaredRedTests": [
+    "Gradle wrapper pinned to 8.14.3 after prebuild",
+    "Kotlin unstable API opt-in present after prebuild",
+    "Cleartext traffic permitted on the application element after prebuild",
+    "Second prebuild over already-patched output is byte-identical to the first",
+    "README no longer instructs hand-applied sideload patches",
+    "Plugin wired into both dev and production configs"
+  ]
+}

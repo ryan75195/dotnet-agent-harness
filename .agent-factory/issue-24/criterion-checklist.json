@@ -1,0 +1,61 @@
+{
+  "criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "After a clean `expo prebuild`, the Gradle wrapper is pinned to 8.14.3 without any manual step.",
+      "plannedImplementation": "The template's Expo config plugin `expo/templates/tv-app/plugins/with-tv-sideload-patches.js` rewrites `distributionUrl` in the generated `android/gradle/wrapper/gradle-wrapper.properties` to `gradle-8.14.3-bin.zip` during prebuild, using set (replace-or-insert) semantics. The hook mechanism (e.g. a filesystem mod or withGradleProperties-style wrapper handling) is the implementer's choice; only the generated wrapper properties are pinned.",
+      "plannedVerification": "Contract test `Gradle wrapper pinned to 8.14.3 after prebuild` in expo/template-tests/prebuild-plugin/tests/gradle-wrapper-pin.test.js: builds a pristine prebuild fixture from the tv-app template, evaluates the template's real `app.config.js` through @expo/config `getConfig` and evaluates mods via `compileModsAsync`, then asserts the generated `android/gradle/wrapper/gradle-wrapper.properties` contains exactly one `distributionUrl` line matching `gradle-8.14.3-bin.zip`. Observable outcome: the pin is present in prebuild output with no manual step.",
+      "materialConcerns": [
+        "release impact: template consumers who prebuild after upgrading inherit the 8.14.3 wrapper automatically; android/ is gitignored regenerated build output, so no persistent state or migration is involved"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-2",
+      "criterion": "After a clean `expo prebuild`, the `@UnstableReactNativeAPI` Kotlin opt-in is present without any manual step.",
+      "plannedImplementation": "The `with-tv-sideload-patches` config plugin adds `-opt-in=com.facebook.react.common.annotations.UnstableReactNativeAPI` to the Kotlin compile arguments of the generated `android/build.gradle` (via `withProjectBuildGradle`) with set semantics so the flag is attached to the KotlinCompile configuration exactly once.",
+      "plannedVerification": "Contract test `Kotlin unstable API opt-in present after prebuild` in expo/template-tests/prebuild-plugin/tests/kotlin-opt-in.test.js: prebuilds the pristine fixture through the real plugin pipeline and asserts the generated `android/build.gradle` contains the full opt-in flag exactly once and that it is wired to the KotlinCompile configuration (not dangling text). Observable outcome: the opt-in is present in prebuild output with no manual step.",
+      "materialConcerns": [
+        "public-contract compatibility: the work item forbids revisiting the patch itself, so the test pins the existing manual patch's exact opt-in target (com.facebook.react.common.annotations.UnstableReactNativeAPI), not a redesigned one"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-3",
+      "criterion": "After a clean `expo prebuild`, cleartext traffic is permitted for the hosts that need it, without any manual step.",
+      "plannedImplementation": "The `with-tv-sideload-patches` config plugin sets `android:usesCleartextTraffic=\"true\"` on the single `<application>` element of the generated `AndroidManifest.xml` (via `withAndroidManifest`), preserving the manual patch's current behaviour. A scoped network-security-config would be preferable (open-source-university-tv#19) but changes what the patch does, which is out of scope here; the deviation must be stated explicitly by the implementer rather than shipped silently.",
+      "plannedVerification": "Contract test `Cleartext traffic permitted on the application element after prebuild` in expo/template-tests/prebuild-plugin/tests/cleartext-traffic.test.js: prebuilds the pristine fixture and asserts the generated `android/app/src/main/AndroidManifest.xml` has exactly one `<application>` element and that it carries `android:usesCleartextTraffic=\"true\"`. Observable outcome: cleartext is enabled in prebuild output with no manual step.",
+      "materialConcerns": [
+        "security boundary: the app-wide usesCleartextTraffic flag disables transport security for every host; a scoped network-security-config (tracked in open-source-university-tv#19) is the preferred long-term shape. The work item pins the existing patch's behaviour and forbids changing what the patches do, so the implementer must call this deviation out explicitly (issue/PR notes) instead of presenting the app-wide flag as equivalent"
+      ],
+      "verificationStatus": "planned",
+      "comparison": false
+    },
+    {
+      "id": "AC-4",
+      "criterion": "Running prebuild twice produces the same result as running it once: the plugin is idempotent and does not accumulate duplicate entries.",
+      "plannedImplementation": "The plugin applies set (replace-or-insert-if-absent) semantics for all three patches so that a second prebuild run over already-generated native output changes nothing.",
+      "plannedVerification": "Contract test `Second prebuild over already-patched output is byte-identical to the first` in expo/template-tests/prebuild-plugin/tests/prebuild-idempotency.test.js: runs prebuild once over the pristine fixture, snapshots the patched wrapper properties, build.gradle and manifest, then runs an explicit second prebuild over the already-patched output and asserts the three files are byte-identical to the snapshot. This mirrors the legacy-state case (re-running prebuild in an existing checkout), not just an empty fresh project; a prototype run confirmed an append-only plugin fails this test while a correct implementation passes.",
+      "materialConcerns": [
+        "regenerated-state compatibility: the verification uses a legacy-state fixture (already-patched android/ output from a first prebuild) rather than only a fresh empty project, because append-only accumulation only becomes visible on the second run"
+      ],
+      "verificationStatus": "planned",
+      "comparison": true,
+      "comparisonObservation": {
+        "firstObservation": "The first prebuild over the pristine fixture produces the patched gradle-wrapper.properties, build.gradle and AndroidManifest.xml; the test snapshots those exact bytes as the baseline before any second run.",
+        "whenHeldValueAbsent": "When no previously generated output exists (pristine fixture, no baseline), there is no held value to compare against: the test runs the first prebuild to establish the baseline itself, so a missing baseline can never make the comparison pass vacuously."
+      }
+    },
+    {
+      "id": "AC-5",
+      "criterion": "No patch remains that a developer is expected to apply by hand.",
+      "plannedImplementation": "Remove the manual sideload-patch instructions from expo/templates/tv-app/README.md: the re-apply-after-prebuild warning and the three hand-edit snippets (Gradle wrapper distributionUrl, Kotlin freeCompilerArgs opt-in, android:usesCleartextTraffic), replacing them with a note that the bundled prebuild plugin applies the patches automatically.",
+      "plannedVerification": "Contract test `README no longer instructs hand-applied sideload patches` in expo/template-tests/prebuild-plugin/tests/readme-manual-patches.test.js: asserts that none of the four hand-applied patch instruction snippets remain in expo/templates/tv-app/README.md. Each snippet was copied verbatim from the current README so the assertions target real artefacts, not invented text. Observable outcome: following the README alone yields a fully patched prebuild.",
+      "materialConcerns": [],
+      "verificationStatus": "planned",
+      "comparison": false
+    }
+  ]
+}
