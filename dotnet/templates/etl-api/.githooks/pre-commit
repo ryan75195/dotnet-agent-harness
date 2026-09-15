@@ -39,7 +39,21 @@ fi
 
 echo "=== Pre-Commit Checks ==="
 
-# Build + Static Analysis (editorconfig rules are errors so they break the build)
+# Git sets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX for a hook's own process
+# tree. A scaffolded project's own Unit/Architecture (and, for durable, Analyzers)
+# suites can spawn their own `git init`/`git config`/`git commit` in temp directories
+# to drive real repos in fixtures; those child git invocations inherit this hook's
+# environment and, on Windows, GIT_DIR wins over the child's cwd-based repo discovery,
+# so they silently run against this checkout instead of their temp fixture -- corrupting
+# it (core.bare flipped to true, or user.name/user.email overwritten) and, from a
+# worktree, corrupting the shared main checkout's common .git. Confirmed 2026-09-15 in
+# agent-factory-src (scaffolded from this template): a worktree commit there flipped
+# the main checkout's core.bare to true. Everything above this line (branch guard,
+# merged-branch check, harness-feedback.sh) already used git and needs the real
+# values, so unset only now, right before the dotnet build/format/test calls.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+
+# Build + Static Analysis
 echo "--- Build + Analyse ---"
 BUILD_OUTPUT=$(dotnet build "$BUILD_TARGET" --no-incremental --verbosity quiet 2>&1)
 BUILD_EXIT=$?
