@@ -1,5 +1,56 @@
 $ErrorActionPreference = 'Stop'
 
+function Write-FactoryPolicy {
+    param([string]$ProjectDir)
+
+    $policyPath = Join-Path $ProjectDir '.github/agent-factory.yml'
+    if (Test-Path -LiteralPath $policyPath -PathType Leaf) {
+        return
+    }
+
+    $login = $null
+    try {
+        $ghOutput = & gh api user --jq .login 2>$null
+        if ($LASTEXITCODE -eq 0 -and $ghOutput) {
+            $login = ($ghOutput | Out-String).Trim()
+        }
+    }
+    catch {
+        $login = $null
+    }
+    $global:LASTEXITCODE = 0
+
+    $usedPlaceholder = $false
+    if ([string]::IsNullOrWhiteSpace($login)) {
+        $login = 'REPLACE_WITH_YOUR_GITHUB_LOGIN'
+        $usedPlaceholder = $true
+    }
+
+    $policyDir = Split-Path -Parent $policyPath
+    New-Item -ItemType Directory -Path $policyDir -Force | Out-Null
+    $policyContent = @"
+version: 1
+enabled: true
+defaultProvider: opencode
+baseBranch: main
+authorizedMaintainers: [$login]
+concurrencyLimit: 2
+retry:
+  maxAttempts: 3
+  backoffSeconds: 60
+"@
+    $policyContent = $policyContent.TrimEnd("`r", "`n") + "`n"
+    $utf8NoBom = [Text.UTF8Encoding]::new($false)
+    [IO.File]::WriteAllText($policyPath, $policyContent, $utf8NoBom)
+
+    if ($usedPlaceholder) {
+        Write-Host "NOTE: could not determine your GitHub login (gh missing or not authenticated)." -ForegroundColor Yellow
+        Write-Host "  Edit .github/agent-factory.yml and replace REPLACE_WITH_YOUR_GITHUB_LOGIN with your GitHub username before the first factory ticket."
+    }
+}
+
+Write-FactoryPolicy -ProjectDir (Get-Location).Path
+
 function Invoke-Git {
     & git @Args
     if ($LASTEXITCODE -ne 0) {
@@ -37,4 +88,5 @@ Write-Host ""
 Write-Host "Done. Next steps:"
 Write-Host "  1. npm run verify"
 Write-Host "  2. gh repo create"
-Write-Host "  3. Read SUBMISSION.md, then ask Claude to run the submission-doctor skill"
+Write-Host "  3. npm run factory:labels"
+Write-Host "  4. Read SUBMISSION.md, then ask Claude to run the submission-doctor skill"

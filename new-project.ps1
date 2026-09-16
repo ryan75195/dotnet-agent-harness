@@ -104,5 +104,5 @@ catch {
 
 Write-Host ''
 Write-Host "Created $($plan.Type) project '$($ctx.Name)' at $($ctx.Dest)"
-Write-Host 'Guardrails are active (see the project CLAUDE.md). Next: gh repo create, then follow the dev lifecycle.'
+Write-Host 'Guardrails are active (see the project CLAUDE.md). Next: gh repo create, then the factory label step (scripts/factory-labels.ps1 or npm run factory:labels), then follow the dev lifecycle.'
 exit 0

@@ -52,6 +52,24 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
     }
 
+    Write-Host "Factory readiness: setup.ps1 must write the policy and ship the label script..."
+    git init -q -b main
+    git config user.email smoke@test.local
+    git config user.name smoke
+    ./setup.ps1
+    if ($LASTEXITCODE -ne 0) { throw "setup.ps1 failed" }
+
+    $policyPath = Join-Path $scaffoldDir '.github/agent-factory.yml'
+    if (-not (Test-Path $policyPath)) { throw 'agent-factory.yml missing after setup.ps1' }
+    $policyContent = Get-Content $policyPath -Raw
+    if ($policyContent -notmatch 'authorizedMaintainers: \[[^\]]+\]') { throw "agent-factory.yml missing authorizedMaintainers:`n$policyContent" }
+
+    $labelsScript = Join-Path $scaffoldDir 'scripts/factory-labels.ps1'
+    if (-not (Test-Path $labelsScript)) { throw 'scripts/factory-labels.ps1 missing from scaffold' }
+    $labelOutput = (& $labelsScript 2>&1 | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw "factory-labels.ps1 did not exit 0 without an origin remote (exit $LASTEXITCODE)`n$labelOutput" }
+    if ($labelOutput -notmatch '(?i)origin') { throw "factory-labels.ps1 did not report a no-origin skip`n$labelOutput" }
+
     Write-Host "Feedback capture: harness_log_failure must append an event..."
     $gitBash = Join-Path (Split-Path (Split-Path (Get-Command git).Source)) 'bin\bash.exe'
     if (-not (Test-Path $gitBash)) { $gitBash = 'bash' }
