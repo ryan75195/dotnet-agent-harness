@@ -10,6 +10,7 @@
     "check-test-files": "node scripts/check-test-files.js",
     "test": "jest",
     "doctor": "node scripts/submission-doctor.js",
+    "factory:labels": "pwsh -NoProfile -File scripts/factory-labels.ps1",
     "verify": "npm run typecheck && npm run lint && npm run depcruise && npm run check-test-files && npm run test -- --coverage"
   },
   "dependencies": {

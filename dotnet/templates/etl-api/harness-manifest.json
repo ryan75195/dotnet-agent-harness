@@ -3,6 +3,7 @@
     ".githooks/**",
     ".claude/**",
     ".codex/**",
+    "scripts/**",
     ".editorconfig",
     "tests/.editorconfig",
     "Directory.Build.props",

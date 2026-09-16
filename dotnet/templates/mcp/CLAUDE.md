@@ -6,6 +6,8 @@ Project context for Claude Code sessions. Read this before making changes.
 
 Every change follows this loop. None of these steps are optional — hooks enforce each transition.
 
+Before the first issue: `gh repo create`, then `./scripts/factory-labels.ps1` to create the `factory:*` labels the agent-factory automation depends on.
+
 1. **Open an issue.** `gh issue create --title "..."`. No issue, no branch.
 2. **Create a feat branch.** `git checkout -b feat/<N>-<kebab-slug>` where `<N>` is the issue number. `.githooks/reference-transaction` rejects the branch on creation if the name doesn't match or if issue #N doesn't exist on GitHub.
 3. **Edit + test.** Run *targeted* tests while iterating (`dotnet test <project>`) for fast feedback. Don't run the full build/test gate just to commit — the pre-commit hook (step 4) runs it and blocks on failure, so committing *is* running the tests, and a blocked commit is also what feeds harness feedback capture. Analyzers run on every build.

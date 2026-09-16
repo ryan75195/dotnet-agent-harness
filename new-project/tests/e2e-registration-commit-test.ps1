@@ -6,22 +6,8 @@ $dest = Join-Path $root 'project'
 $bin = Join-Path $root 'bin'
 New-Item -ItemType Directory -Path $bin -Force | Out-Null
 
-# Return valid, distinct factory payloads for each gh API request.
-$policy = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("version: 1`ndefaultProvider: opencode`n"))
-$setup = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("#!/bin/sh`ngit config core.hooksPath .githooks`n"))
-$lint = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("#!/bin/sh`ndotnet format --verify-no-changes`n"))
-$gh = @"
-#!/bin/sh
-case "`$2" in
-  *agent-factory.yml) printf '%s\n' '$policy' ;;
-  *setup.sh) printf '%s\n' '$setup' ;;
-  *lint.sh) printf '%s\n' '$lint' ;;
-  *) exit 1 ;;
-esac
-"@
-$ghPath = Join-Path $bin 'gh'
-[IO.File]::WriteAllText($ghPath, $gh)
-[IO.File]::SetUnixFileMode($ghPath, [IO.UnixFileMode]::UserExecute -bor [IO.UnixFileMode]::UserRead)
+$ghPath = Join-Path $bin 'gh.cmd'
+[IO.File]::WriteAllText($ghPath, "@echo off`r`nif `"%1`"==`"api`" if `"%2`"==`"user`" (echo octocat`r`n exit /b 0`r`n)`r`nexit /b 1`r`n")
 $oldPath = $env:PATH
 $oldGitConfig = $env:GIT_CONFIG_GLOBAL
 $env:GIT_CONFIG_GLOBAL = Join-Path $root 'gitconfig'
@@ -38,6 +24,9 @@ try {
     $policyInCommit = git -C $dest show "$firstCommit`:.github/agent-factory.yml" 2>$null | Out-String
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($policyInCommit)) {
         throw "Failed ${testName}: policy file is absent from the initial commit"
+    }
+    if ($policyInCommit -notmatch 'authorizedMaintainers: \[octocat\]') {
+        throw "Failed ${testName}: policy in the initial commit does not carry the resolved login`n$policyInCommit"
     }
 } catch {
     if ($_.Exception.Message -like "Failed ${testName}:*") { throw }

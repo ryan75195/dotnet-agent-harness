@@ -1,0 +1,9 @@
+version: 1
+enabled: true
+defaultProvider: opencode
+baseBranch: main
+authorizedMaintainers: [__LOGIN__]
+concurrencyLimit: 2
+retry:
+  maxAttempts: 3
+  backoffSeconds: 60

@@ -43,7 +43,19 @@ git checkout -b feat/<N>-harness-update
 & "${CLAUDE_PLUGIN_ROOT}/scripts/apply-update.ps1" -ManifestPath $manifestPath
 ```
 
-### 5. Merge the flagged files
+### 5. Ensure the factory policy exists
+
+`.github/agent-factory.yml` is project-owned (deliberately absent from every
+template's `harness-manifest.json` `ownedPaths`), so step 4 never touches it.
+Older projects scaffolded before this file existed still need it:
+```powershell
+& "${CLAUDE_PLUGIN_ROOT}/scripts/write-factory-policy.ps1" -ProjectDir .
+```
+It writes nothing if the file already exists, and otherwise writes the
+scaffolder's GitHub login (or a placeholder with a note to fix it) — the same
+content `setup.ps1` and `register-with-factory.ps1` produce.
+
+### 6. Merge the flagged files
 
 For each `modified`/`deleted` entry, get the three versions and merge:
 ```powershell
@@ -52,14 +64,14 @@ git -C <repoPath> show "<headCommit>:<templatePath>"          # incoming
 ```
 plus the project's current file. Apply the stamp's renames mentally when comparing. Produce a merge that keeps the project's customizations AND adopts the template's improvements; explain each decision in one line. If a customization genuinely conflicts with the update's intent, ask the user. For `deleted` entries: delete the project file only if the project never customized it; otherwise ask.
 
-### 6. Verify — the update is not done until the project's own gate passes
+### 7. Verify — the update is not done until the project's own gate passes
 
 - expo: `npm run verify`
 - dotnet: `dotnet build --no-incremental` then `dotnet test --no-build`
 
-Fix failures before proceeding (a template update that breaks the project is a merge you got wrong in step 5 — revisit it, don't loosen the project).
+Fix failures before proceeding (a template update that breaks the project is a merge you got wrong in step 6 — revisit it, don't loosen the project).
 
-### 7. Bump the stamp and ship
+### 8. Bump the stamp and ship
 
 ```powershell
 $s = Get-Content .harness.json -Raw | ConvertFrom-Json

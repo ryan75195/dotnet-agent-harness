@@ -9,35 +9,40 @@ function Assert($condition, $message) {
 
 function New-RegistrationFixture {
     $root = Join-Path ([IO.Path]::GetTempPath()) ("factory-registration-" + [guid]::NewGuid().ToString('N'))
-    $factory = Join-Path $root 'factory'
     $project = Join-Path $root 'project'
-    New-Item -ItemType Directory -Path (Join-Path $factory '.github') -Force | Out-Null
-    New-Item -ItemType Directory -Path (Join-Path $factory '.agent-factory') -Force | Out-Null
+    $bin = Join-Path $root 'bin'
     New-Item -ItemType Directory -Path $project -Force | Out-Null
-
-    $policy = @"
-version: 1
-enabled: true
-defaultProvider: opencode
-baseBranch: main
-authorizedMaintainers: [ryan75195]
-concurrencyLimit: 10
-retry:
-  maxAttempts: 6
-  backoffSeconds: 30
-"@
-    [IO.File]::WriteAllText((Join-Path $factory '.github/agent-factory.yml'), $policy, [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText((Join-Path $factory '.agent-factory/setup.sh'), "#!/bin/sh`ngit config core.hooksPath .githooks`n", [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText((Join-Path $factory '.agent-factory/lint.sh'), "#!/bin/sh`ndotnet format --verify-no-changes`n", [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText((Join-Path $factory '.agent-factory/contract-rules.md'), '# factory-only rules', [Text.UTF8Encoding]::new($false))
-
-    [pscustomobject]@{ Root = $root; Factory = $factory; Project = $project }
+    New-Item -ItemType Directory -Path $bin -Force | Out-Null
+    [pscustomobject]@{ Root = $root; Project = $project; Bin = $bin; OldPath = $env:PATH }
 }
 
-function Invoke-Registration($fixture, [string]$factoryPath = $fixture.Factory) {
-    & $script:registrationScript -ProjectDir $fixture.Project -FactoryRepoPath $factoryPath
+function Install-FakeGh {
+    param(
+        $fixture,
+        [string]$Login = 'octocat',
+        [switch]$Fail
+    )
+    $ghPath = Join-Path $fixture.Bin 'gh'
+    if ($Fail) {
+        [IO.File]::WriteAllText($ghPath, "#!/bin/sh`nexit 1`n")
+    }
+    else {
+        [IO.File]::WriteAllText($ghPath, "#!/bin/sh`nif [ ""`$1"" = ""api"" ] && [ ""`$2"" = ""user"" ]; then echo $Login; exit 0; fi`nexit 1`n")
+    }
+    [IO.File]::SetUnixFileMode($ghPath, [IO.UnixFileMode]::UserExecute -bor [IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite)
+    $env:PATH = "$($fixture.Bin)$([IO.Path]::PathSeparator)$($fixture.OldPath)"
+}
+
+function Remove-FakeGh {
+    param($fixture)
+    $env:PATH = $fixture.OldPath
+}
+
+function Invoke-Registration($fixture) {
+    & $script:registrationScript -ProjectDir $fixture.Project
 }
 
 function Remove-RegistrationFixture($fixture) {
+    if ($fixture) { Remove-FakeGh $fixture }
     if ($fixture -and (Test-Path $fixture.Root)) { Remove-Item -Recurse -Force $fixture.Root }
 }

@@ -7,6 +7,9 @@ Project context for Claude Code sessions. Read this before making changes.
 Every change follows this loop. None of these steps are optional — hooks
 enforce each transition.
 
+Before the first issue: `gh repo create`, then `npm run factory:labels` to
+create the `factory:*` labels the agent-factory automation depends on.
+
 1. **Open an issue.** `gh issue create --title "..."`. No issue, no branch.
 2. **Create a feat branch.** `git checkout -b feat/<N>-<kebab-slug>` where
    `<N>` is the issue number. `.githooks/reference-transaction` rejects the

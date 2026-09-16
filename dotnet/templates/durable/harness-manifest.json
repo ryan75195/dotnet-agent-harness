@@ -2,6 +2,7 @@
   "ownedPaths": [
     ".githooks/**",
     ".claude/**",
+    "scripts/**",
     ".editorconfig",
     "tests/.editorconfig",
     "Directory.Build.props",

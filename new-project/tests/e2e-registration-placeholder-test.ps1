@@ -1,13 +1,12 @@
 $ErrorActionPreference = 'Stop'
-$testName = 'Scaffold_succeeds_and_reports_registration_skipped_when_source_is_unreachable'
+$testName = 'Scaffold_succeeds_and_falls_back_to_a_placeholder_login_when_gh_is_unavailable'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$root = Join-Path ([IO.Path]::GetTempPath()) ('new-project-unreachable-' + [guid]::NewGuid().ToString('N'))
+$root = Join-Path ([IO.Path]::GetTempPath()) ('new-project-placeholder-' + [guid]::NewGuid().ToString('N'))
 $dest = Join-Path $root 'project'
 $bin = Join-Path $root 'bin'
 New-Item -ItemType Directory -Path $bin -Force | Out-Null
-$ghPath = Join-Path $bin 'gh'
-[IO.File]::WriteAllText($ghPath, "#!/bin/sh`nexit 1`n")
-[IO.File]::SetUnixFileMode($ghPath, [IO.UnixFileMode]::UserExecute -bor [IO.UnixFileMode]::UserRead)
+$ghPath = Join-Path $bin 'gh.cmd'
+[IO.File]::WriteAllText($ghPath, "@echo off`r`nexit /b 1`r`n")
 $oldPath = $env:PATH
 $oldGitConfig = $env:GIT_CONFIG_GLOBAL
 $env:GIT_CONFIG_GLOBAL = Join-Path $root 'gitconfig'
@@ -16,10 +15,15 @@ git config --global user.name 'Contract Test'
 
 try {
     $env:PATH = "$bin$([IO.Path]::PathSeparator)$oldPath"
-    $output = (& (Join-Path $repo 'new-project.ps1') dotnet-cli UnreachableFactoryTool -Destination $dest 2>&1 | Out-String)
+    $output = (& (Join-Path $repo 'new-project.ps1') dotnet-cli PlaceholderLoginTool -Destination $dest 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0) { throw "Failed ${testName}: dispatcher exited $LASTEXITCODE`n$output" }
     if (-not (Test-Path $dest)) { throw 'project directory was not created' }
-    if ($output -notmatch '(?i)Factory registration skipped') { throw "registration skip was not reported`n$output" }
+    $policyPath = Join-Path $dest '.github/agent-factory.yml'
+    if (-not (Test-Path $policyPath)) { throw "Failed ${testName}: policy file was not written" }
+    $policy = [IO.File]::ReadAllText($policyPath)
+    if ($policy -notmatch 'authorizedMaintainers: \[REPLACE_WITH_YOUR_GITHUB_LOGIN\]') {
+        throw "Failed ${testName}: policy does not carry the placeholder login`n$policy"
+    }
 } catch {
     if ($_.Exception.Message -like "Failed ${testName}:*") { throw }
     throw "Failed ${testName}: $($_.Exception.Message)"
@@ -29,4 +33,4 @@ try {
     if (Test-Path $root) { Remove-Item -Recurse -Force $root }
 }
 
-Write-Host "e2e-registration-unreachable: ${testName}: passed"
+Write-Host "e2e-registration-placeholder: ${testName}: passed"
