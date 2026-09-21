@@ -121,3 +121,7 @@ checks for the Expo template.
 See [`dotnet/README.md`](dotnet/README.md#development) for what the
 `durable` leg covers by default and how to exercise its Integration tests
 locally.
+
+## Related
+
+- [Proposed API Catalogue](https://nice-dune-02fdd5103.3.azurestaticapps.net/) — 50 proposed API designs with OpenAPI specs and `llms.txt`, published as an open experiment in how developers and AI coding agents discover APIs ([source](https://github.com/ryan75195/proposed-api-catalogue)).
