@@ -124,4 +124,4 @@ locally.
 
 ## Related
 
-- [Proposed API Catalogue](https://nice-dune-02fdd5103.3.azurestaticapps.net/) — 50 proposed API designs with OpenAPI specs and `llms.txt`, published as an open experiment in how developers and AI coding agents discover APIs ([source](https://github.com/ryan75195/proposed-api-catalogue)).
+- [OpenAPI Registry](https://openapiregistry.com/) — 45 pre-launch API products with OpenAPI specs and `llms.txt`, published ahead of release as an open experiment in how developers and AI coding agents discover APIs ([source](https://github.com/ryan75195/proposed-api-catalogue)).
