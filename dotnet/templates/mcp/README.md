@@ -51,14 +51,45 @@ URL to connect — for example, an editor or agent that supports adding a remote
 
 ## Authentication
 
-The scaffolded server is **unauthenticated by default** — anyone who can reach the HTTP endpoint
-can call its tools, resources, and prompts. This is intentional for local development and as a
-starting point. Before exposing the server beyond localhost, add authentication and authorization
-at the ASP.NET Core layer (the same layer any minimal-API or controller-based app uses): wire up
-`AddAuthentication()`/`AddAuthorization()` (e.g. an OAuth2/OIDC bearer scheme), apply
-`RequireAuthorization()` to the MCP endpoint mapped by `app.MapMcp()`, and configure your identity
-provider of choice. The MCP specification's [authorization spec](https://modelcontextprotocol.io/specification/draft/basic/authorization)
-describes the OAuth flow MCP clients expect if you want spec-compliant auth discovery.
+The scaffolded server ships with **optional OAuth, off by default**. It stays unauthenticated —
+anyone who can reach the HTTP endpoint can call its tools — until you set `McpAuth:Authority` in
+configuration. Then `Program.cs` protects the MCP endpoint and serves spec-compliant OAuth
+discovery, so MCP clients (editors, agents) can connect via the standard authorization flow.
+
+`AddMcpOAuth(configuration)` in `Authentication/McpOAuthExtensions.cs` wires the ASP.NET Core auth
+layer using the MCP SDK's `.AddMcp()`:
+
+- **JWT bearer** validation against your OIDC provider (`Authority` + `Audience`).
+- **`.AddMcp()`** serves OAuth Protected Resource Metadata at
+  `/.well-known/oauth-protected-resource` plus the `WWW-Authenticate` challenge, so clients can
+  discover the authorization server and self-register (DCR) — the seamless connect flow the
+  [MCP authorization spec](https://modelcontextprotocol.io/specification/draft/basic/authorization)
+  describes.
+- `MapMcp().RequireAuthorization()` is applied only when auth is enabled.
+
+Enable it via configuration (appsettings.json, env vars, or user-secrets):
+
+```json
+{
+  "McpAuth": {
+    "Authority": "https://your-idp.example.com/",
+    "Audience": "api://your-api-or-mcp-identifier",
+    "Resource": "api://your-api-or-mcp-identifier"
+  }
+}
+```
+
+`Resource` is the audience the client requests a token for (defaults to `Audience`). If the token
+is meant for a downstream API you call from your tools, set these to that API's audience and
+forward the bearer to it.
+
+`Program.cs` also enables `UseForwardedHeaders()` so OAuth discovery URLs are correct (`https`,
+public host) when the server runs behind a TLS-terminating reverse proxy or tunnel.
+
+> **Note:** In the C# SDK the MCP server is an OAuth *resource server* — Dynamic Client
+> Registration happens at your **authorization server**, not here. Some providers (e.g. Auth0)
+> require enabling DCR and RFC 8707 resource-parameter support on the tenant for the fully
+> seamless, no-manual-client-id flow.
 
 ## Development lifecycle
 
