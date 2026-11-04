@@ -17,4 +17,12 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <!-- CI0021: a packaged SDK library sets HarnessOptionsDefaultsInCode=true in its csproj so its options can carry defaults -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="HarnessOptionsDefaultsInCode" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(HarnessOptionsDefaultsInCode)' == 'true'">
+    <AssemblyMetadata Include="HarnessOptionsDefaultsInCode" Value="true" />
+  </ItemGroup>
 </Project>
