@@ -32,6 +32,7 @@ public class CodeStructureTests
                 && t.IsPublic
                 && (!t.IsAbstract || t.IsSealed)
                 && !t.Name.EndsWith("Extensions", StringComparison.Ordinal)
+                && !t.Name.EndsWith("Options", StringComparison.Ordinal)
                 && !TestHelpers.IsRecord(t)
                 && !TestHelpers.IsDbContext(t)
                 && t.Namespace?.Contains(".Entities", StringComparison.Ordinal) != true

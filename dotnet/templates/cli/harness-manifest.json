@@ -7,6 +7,7 @@
     "tests/.editorconfig",
     "Directory.Build.props",
     "src/ConsoleApp.Analyzers/**",
+    "tests/ConsoleApp.Tests.Architecture/ConfigurationTests.cs",
     "CLAUDE.md",
     "harness-manifest.json"
   ]

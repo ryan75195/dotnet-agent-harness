@@ -36,7 +36,7 @@ Before the first issue: `gh repo create`, then `./scripts/factory-labels.ps1` to
 
 - **Solution:** `ConsoleApp.slnx`, .NET 10, three `src/` projects (`Core`, `Cli`, `Analyzers`) and four `tests/` projects (`Tests.Unit`, `Tests.Integration`, `Tests.Architecture`, `Tests.Analyzers`).
 - **Architecture tests** in `tests/ConsoleApp.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `Core.ServiceCollectionExtensions.AddCoreServices()`), naming conventions, and one-public-type-per-file. Tests are split across `LayerDependencyTests`, `NamingConventionTests`, `ServiceShapeTests`, `CodeStructureTests`, and `DiRegistrationTests`; shared infrastructure lives in `TestHelpers.cs`.
-- **Custom analyzers** in `src/ConsoleApp.Analyzers/` enforce these 16 shared rules:
+- **Custom analyzers** in `src/ConsoleApp.Analyzers/` enforce these 18 shared rules:
   - `CI0001` `NoTupleReturnAnalyzer`
   - `CI0002` `TestCoverageAnalyzer`
   - `CI0003` `ConstructorDependencyAnalyzer`
@@ -53,6 +53,18 @@ Before the first issue: `gh repo create`, then `./scripts/factory-labels.ps1` to
   - `CI0014` `ClassLengthAnalyzer`
   - `CI0015` `SyncOverAsyncAnalyzer`
   - `CI0019` `TestFixtureNamesSolutionTypeAnalyzer`
+  - `CI0020` `ConfigurationAccessAnalyzer`
+  - `CI0021` `OptionsDefaultsInJsonAnalyzer`
+
+## Configuration
+
+Configurable values (endpoints, model names, limits, prices, paths) live in configuration, never in code.
+
+- **Options classes.** Each concern gets a class ending in `Options` with `public const string SectionName = "...";`, bound in the composition root (`services.AddOptions<T>().Bind(configuration.GetSection(T.SectionName)).ValidateOnStart()`) and consumed as `IOptions<T>`.
+- **Read configuration only at the composition root.** `CI0020` blocks `IConfiguration` (and any type implementing it) and `Environment.GetEnvironmentVariable` outside `Program.cs` top-level statements and static `*ServiceCollectionExtensions` classes. Environment variables reach options through the host's configuration (`Section__Key`), not through direct reads.
+- **Defaults live in `appsettings.json`.** `CI0021` blocks initialisers on options members (`= 3`, `= "model-x"`, `= TimeSpan.FromSeconds(5)`); empty initialisers that only satisfy nullability (`string.Empty`, `null!`, `[]`, `new()`) are allowed. A secret gets a `null` key in the JSON and its value from the environment or user secrets.
+- **The exception: packaged SDK libraries.** A library shipped as a NuGet package has no `appsettings.json` its consumers can see, so its options carry their defaults in code. Opt that one project out with `<HarnessOptionsDefaultsInCode>true</HarnessOptionsDefaultsInCode>` in its csproj; never set it on an app project.
+- **`ConfigurationTests`** (architecture) fails when a key in `src/*.Cli/appsettings.json` binds to no options property (a silent typo), or when an options property in a project that is not opted out has no key.
 
 ## Testing judgment calls
 

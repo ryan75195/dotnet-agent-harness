@@ -45,3 +45,6 @@ dotnet_diagnostic.CI0008.severity = none
 
 # CI0009: not-null-only assertion — enforced in test projects, blocks commits
 dotnet_diagnostic.CI0009.severity = error
+
+# CI0020: tests build in-memory configuration and read process environment for fixtures
+dotnet_diagnostic.CI0020.severity = none

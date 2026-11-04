@@ -77,6 +77,12 @@ Write-Host "Initializing git repo..."
 Invoke-Git init -q -b main
 Invoke-Git add .
 
+Write-Host "Marking hooks and shell scripts executable..."
+$executables = @(git ls-files -- '.githooks/*' '*.sh')
+if ($executables.Count -gt 0) {
+    Invoke-Git update-index --chmod=+x -- @executables
+}
+
 Write-Host "Activating .githooks..."
 Invoke-Git config core.hooksPath .githooks
 

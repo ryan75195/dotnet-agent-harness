@@ -45,7 +45,7 @@ Before the first issue: `gh repo create`, then `./scripts/factory-labels.ps1` to
 - **Where work belongs:** anything touching the outside world (an HTTP call, a queue, a database, a clock, randomness) goes in an **activity**, which calls a `Core` service to do it. Orchestrators only decide *what* to call and in *what order*. Activities may inject dependencies through their constructor and accept a `CancellationToken`; orchestrators may do neither — both are means for an orchestrator to reach outside its own replay-safe world.
 - **`Core`** splits `Models/` (DTOs — safe for an orchestrator to reference) from `Interfaces/` and `Services/` (behaviour — never safe). Orchestrations may depend on `Core.Models` but **not** on `Core.Interfaces`/`Core.Services`; `DurableFunctionTests` enforces this structurally by asserting the `Orchestrations` namespace has no dependency on either. This split is load-bearing, not cosmetic: the orchestrator classes are `static`, so they hold no instance state for CI0017 to catch, and a static orchestrator that reaches a service through a local variable with no `await` is invisible to CI0016 too (it only inspects `await` expressions). The namespace-dependency rule is the only guardrail that would catch that case.
 - **Architecture tests** in `tests/SampleDurable.Tests.Architecture/` enforce layering, DI shape, DI wiring (every public Core interface must be registered via `AddCoreServices()`), naming, one-public-type-per-file, and the durable-specific rules above (`DurableFunctionTests`).
-- **Custom analyzers** in `src/SampleDurable.Analyzers/` enforce these 16 shared rules:
+- **Custom analyzers** in `src/SampleDurable.Analyzers/` enforce these 18 shared rules:
   - `CI0001` `NoTupleReturnAnalyzer`
   - `CI0002` `TestCoverageAnalyzer`
   - `CI0003` `ConstructorDependencyAnalyzer`
@@ -62,6 +62,8 @@ Before the first issue: `gh repo create`, then `./scripts/factory-labels.ps1` to
   - `CI0014` `ClassLengthAnalyzer`
   - `CI0015` `SyncOverAsyncAnalyzer`
   - `CI0019` `TestFixtureNamesSolutionTypeAnalyzer`
+  - `CI0020` `ConfigurationAccessAnalyzer`
+  - `CI0021` `OptionsDefaultsInJsonAnalyzer`
   - `CI0016` `OrchestratorNonDurableAwaitAnalyzer` (durable-only)
   - `CI0017` `OrchestratorDependencyAnalyzer` (durable-only)
   - `CI0018` `DurableFunctionNameLiteralAnalyzer` (durable-only)
@@ -102,6 +104,15 @@ manual `PATH` fix-up is needed.
 None of this is required for `Tests.Unit`, `Tests.Architecture`, or `Tests.Analyzers` — those,
 and only those, are what the pre-commit hook runs, so **committing never requires Azurite**.
 Only `Tests.Integration` needs the emulator and the host running.
+
+## Configuration
+
+Configurable values (endpoints, model names, limits, prices, paths) live in configuration, never in code.
+
+- **Options classes.** Each concern gets a class ending in `Options` with `public const string SectionName = "...";`, bound in the composition root (`services.AddOptions<T>().Bind(configuration.GetSection(T.SectionName)).ValidateOnStart()`) and consumed as `IOptions<T>`.
+- **Read configuration only at the composition root.** `CI0020` blocks `IConfiguration` (and any type implementing it) and `Environment.GetEnvironmentVariable` outside `Program.cs` top-level statements and static `*ServiceCollectionExtensions` classes. Environment variables reach options through the host's configuration (`Section__Key`), not through direct reads.
+- **Defaults live in `appsettings.json`.** `CI0021` blocks initialisers on options members (`= 3`, `= "model-x"`, `= TimeSpan.FromSeconds(5)`); empty initialisers that only satisfy nullability (`string.Empty`, `null!`, `[]`, `new()`) are allowed. A secret gets a `null` key in the JSON and its value from the environment or user secrets.
+- **The exception: packaged SDK libraries.** A library shipped as a NuGet package has no `appsettings.json` its consumers can see, so its options carry their defaults in code. Opt that one project out with `<HarnessOptionsDefaultsInCode>true</HarnessOptionsDefaultsInCode>` in its csproj; never set it on an app project.
 
 ## Testing judgment calls
 
